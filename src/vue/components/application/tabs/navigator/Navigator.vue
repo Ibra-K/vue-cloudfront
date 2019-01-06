@@ -22,7 +22,7 @@
                    @click="setViewType('grid')"></i>
 
                 <!-- Show keyboard-shortcuts button -->
-                <i class="fas fa-fw fa-keyboard" @click="$store.commit('setActivePopup', 'KeyboardShortcuts')"></i>
+                <i class="keyboard fas fa-fw fa-keyboard" @click="$store.commit('setActivePopup', 'KeyboardShortcuts')"></i>
 
                 <!-- Introduction -->
                 <intro-box id="2"
@@ -253,7 +253,7 @@
 
         .list-view,
         .grid-view {
-            margin: 0 2em 0 2em;
+            margin: 0 2em 0;
             overflow: hidden;
 
             @include animate('1s ease forwards') {
@@ -279,6 +279,23 @@
             span {
                 @include font(400, 0.85em);
                 margin-top: 0.2em;
+            }
+        }
+    }
+
+    @include mobile {
+        .nav {
+            margin: 1.25em 0.75em 0.75em;
+
+            .controls .keyboard {
+                display: none;
+            }
+        }
+
+        .views {
+            .list-view,
+            .grid-view {
+                margin: 0 0.75em;
             }
         }
     }

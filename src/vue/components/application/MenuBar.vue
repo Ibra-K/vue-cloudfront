@@ -1,5 +1,5 @@
 <template>
-    <section class="menu">
+    <section :class="{menu: 1, open}">
 
         <div v-tooltip="'Home'"
              :class="{'item': 1, active: activeTab === 'home'}"
@@ -58,11 +58,30 @@
         components: {IntroBox},
 
         data() {
-            return {};
+            return {
+                open: false
+            };
         },
 
         computed: {
             ...mapState(['activeTab'])
+        },
+
+        mounted() {
+
+            let start = false;
+            this.utils.on(window, ['touchend', 'touchcancel'], () => start = false);
+
+            this.utils.on(window, 'touchstart', ({touches}) => {
+                start = touches && touches.length && touches[0].clientX < 50;
+            });
+
+            this.utils.on(window, 'touchmove', ({touches}) => {
+                if (start && touches && touches.length && touches[0].clientX > 100) {
+                    this.open = true;
+                    start = false;
+                }
+            });
         },
 
         methods: {
@@ -74,6 +93,7 @@
 
                 // Show new tab
                 this.$store.commit('setActiveTab', newTab);
+                this.open = false;
             },
 
             refresh() {
@@ -83,6 +103,7 @@
 
                 // Go to home
                 this.changeTab('home');
+                this.open = false;
             }
         }
     };
@@ -129,6 +150,20 @@
 
     .eat-space {
         flex-grow: 1;
+    }
+
+    @include mobile {
+        .menu {
+            position: fixed;
+            height: 100%;
+            z-index: 100;
+            transform: translateX(-120%);
+            transition: all 0.3s;
+
+            &.open {
+                transform: none;
+            }
+        }
     }
 
 </style>

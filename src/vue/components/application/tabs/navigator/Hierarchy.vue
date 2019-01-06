@@ -107,9 +107,12 @@
 <style lang="scss" scoped>
 
     .hierarchy {
-        @include flex(row, center);
-        flex-wrap: wrap;
         min-height: 2.5em;
+
+        .nodes {
+            @include flex(row, center);
+            flex-wrap: wrap;
+        }
 
         .node {
             @include inline-flex(row, center);
@@ -172,6 +175,12 @@
         color: $palette-deep-blue;
         font-size: 0.9em;
         white-space: pre-wrap;
+    }
+
+    @include mobile {
+        .hierarchy {
+            min-height: 0;
+        }
     }
 
 </style>

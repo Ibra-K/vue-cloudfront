@@ -1,75 +1,78 @@
 <template>
-    <div ref="menu"
-         :class="{menu: 1, open}"
-         :style="style">
+    <div class="context-menu">
 
-        <div v-if="marked || type === 'files' || type === 'dir' || type === 'mixed'"
-             class="option star"
-             @click="star()">
-            <i :class="`fa${marked ? 'r' : 's'} fa-fw fa-bookmark`"></i>
-            <span class="name">{{ marked ? 'Remove mark' : 'Add mark' }}</span>
-        </div>
+        <div ref="menu"
+             :class="{menu: 1, open}"
+             :style="style">
 
-        <div v-if="type === 'files' || type === 'dir' || type === 'mixed'"
-             class="option delete"
-             @click="del()">
-            <i class="fas fa-fw fa-trash-alt"></i>
-            <span class="name">Delete</span>
-        </div>
+            <div v-if="marked || type === 'files' || type === 'dir' || type === 'mixed'"
+                 class="option star"
+                 @click="star()">
+                <i :class="`fa${marked ? 'r' : 's'} fa-fw fa-bookmark`"></i>
+                <span class="name">{{ marked ? 'Remove mark' : 'Add mark' }}</span>
+            </div>
 
-        <div v-if="type === 'files' && nodes.length === 1"
-             class="option"
-             @click="download()">
-            <i class="fas fa-fw fa-download"></i>
-            <span class="name">Download</span>
-        </div>
+            <div v-if="type === 'files' || type === 'dir' || type === 'mixed'"
+                 class="option delete"
+                 @click="del()">
+                <i class="fas fa-fw fa-trash-alt"></i>
+                <span class="name">Delete</span>
+            </div>
 
-        <div v-if="!search.active && activeTab === 'home'"
-             class="option"
-             @click="newFolder()">
-            <i class="fas fa-fw fa-folder-plus"></i>
-            <span class="name">New Folder</span>
-        </div>
+            <div v-if="type === 'files' && nodes.length === 1"
+                 class="option"
+                 @click="download()">
+                <i class="fas fa-fw fa-download"></i>
+                <span class="name">Download</span>
+            </div>
 
-        <div v-if="nodes.length === 1"
-             class="option"
-             @click="edit()">
-            <i class="fas fa-fw fa-pen"></i>
-            <span class="name">Rename</span>
-        </div>
+            <div v-if="!search.active && activeTab === 'home'"
+                 class="option"
+                 @click="newFolder()">
+                <i class="fas fa-fw fa-folder-plus"></i>
+                <span class="name">New Folder</span>
+            </div>
 
-        <div v-if="nodes.length && activeTab === 'home'"
-             class="option"
-             @click="moveToClipboard('copy')">
-            <i class="fas fa-fw fa-copy"></i>
-            <span class="name">Copy</span>
-        </div>
+            <div v-if="nodes.length === 1"
+                 class="option"
+                 @click="edit()">
+                <i class="fas fa-fw fa-pen"></i>
+                <span class="name">Rename</span>
+            </div>
 
-        <div v-if="nodes.length"
-             class="option"
-             @click="moveToClipboard('move')">
-            <i class="fas fa-fw fa-cut"></i>
-            <span class="name">Cut</span>
-        </div>
+            <div v-if="nodes.length && activeTab === 'home'"
+                 class="option"
+                 @click="moveToClipboard('copy')">
+                <i class="fas fa-fw fa-copy"></i>
+                <span class="name">Copy</span>
+            </div>
 
-        <div v-if="clipboard.nodes.length && activeTab === 'home'"
-             class="option"
-             @click="execClipboardAction()">
-            <i class="fas fa-fw fa-paste"></i>
-            <span class="name">Paste</span>
-        </div>
+            <div v-if="nodes.length"
+                 class="option"
+                 @click="moveToClipboard('move')">
+                <i class="fas fa-fw fa-cut"></i>
+                <span class="name">Cut</span>
+            </div>
 
-        <div v-if="nodes.length === 1 && type === 'files'"
-             class="option"
-             @click="share()">
-            <i class="fas fa-fw fa-share-alt"></i>
-            <span class="name">Share</span>
-        </div>
+            <div v-if="clipboard.nodes.length && activeTab === 'home'"
+                 class="option"
+                 @click="execClipboardAction()">
+                <i class="fas fa-fw fa-paste"></i>
+                <span class="name">Paste</span>
+            </div>
 
-        <div v-if="type === 'dir'" class="option sub">
-            <i class="fas fa-fw fa-palette"></i>
-            <span class="name">Change color</span>
-            <color-chooser class="sub-menu" @change="setColor"/>
+            <div v-if="nodes.length === 1 && type === 'files'"
+                 class="option"
+                 @click="share()">
+                <i class="fas fa-fw fa-share-alt"></i>
+                <span class="name">Share</span>
+            </div>
+
+            <div v-if="type === 'dir'" class="option sub">
+                <i class="fas fa-fw fa-palette"></i>
+                <span class="name">Change color</span>
+                <color-chooser class="sub-menu" @change="setColor"/>
+            </div>
         </div>
 
     </div>
@@ -371,6 +374,20 @@
                     transform: perspective(100px);
                     pointer-events: all;
                 }
+            }
+        }
+    }
+
+
+    @include mobile {
+        .context-menu {
+            position: fixed;
+            @include position(0, 0, 0, 0);
+            @include flex(column, center, center);
+            pointer-events: none;
+
+            .menu {
+                position: static;
             }
         }
     }

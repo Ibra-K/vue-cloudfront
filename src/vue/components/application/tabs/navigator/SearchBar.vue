@@ -138,7 +138,6 @@
         @include flex(row, center);
         padding: 0.5em 0.1em;
         border-radius: 50em;
-        margin-bottom: 0.5em;
 
         &:focus-within {
             i {
@@ -195,11 +194,17 @@
     .options {
         position: relative;
         @include inline-flex(row, stretch);
-        margin: 0 0.75em 0.5em 0.75em;
+        margin: 0.5em 0.75em 0.5em 0.75em;
 
         .option {
             @include flex(row, center);
             margin-right: 0.5em;
+        }
+    }
+
+    @include mobile {
+        .options {
+            font-size: 0.85em;
         }
     }
 

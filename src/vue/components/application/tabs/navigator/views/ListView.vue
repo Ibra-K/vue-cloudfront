@@ -356,4 +356,21 @@
         }
     }
 
+    @include mobile {
+        .dir,
+        .file,
+        .header {
+            font-size: 0.65em;
+
+            .detail {
+                margin: 0 0.5em;
+                width: 80%;
+
+                &:last-child {
+                    margin-right: 0;
+                }
+            }
+        }
+    }
+
 </style>

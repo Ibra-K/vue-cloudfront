@@ -99,4 +99,10 @@
         }
     }
 
+    @include mobile {
+        .popup {
+            padding: 0.25em;
+        }
+    }
+
 </style>

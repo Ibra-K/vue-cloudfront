@@ -129,4 +129,10 @@
         }
     }
 
+    @include mobile {
+        .tooltip {
+            display: none;
+        }
+    }
+
 </style>
