@@ -54,7 +54,7 @@
                  v-for="(node, index) of sortedNodes.file"
                  :class="{selected: node._selected, file: 1, cutted: node._cutted}"
                  :data-hash="node.id"
-                 @touchend="select($event, node)"
+                 @click="select($event, node)"
                  @click.left="select($event, node)"
                  @click.right="select($event, node)">
 

@@ -407,4 +407,15 @@
         }
     }
 
+    @include mobile {
+        .shortcut-sections {
+            flex-direction: column;
+            padding-right: 0.5em;
+        }
+
+        .shortcut-section {
+            width: 100%;
+        }
+    }
+
 </style>

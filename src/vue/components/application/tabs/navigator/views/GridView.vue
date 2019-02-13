@@ -12,7 +12,7 @@
                      v-for="node of croppedNodes.dir"
                      :class="{selected: node._selected, dir: 1, cutted: node._cutted}"
                      :data-hash="node.id"
-                     @touchend="select($event, node)"
+                     @click="select($event, node)"
                      @click.left="select($event, node)"
                      @click.right="select($event, node)">
 
@@ -34,7 +34,7 @@
                     <div v-double-tap="() => $store.commit('filepreview/show', {nodes: nodes.file, index})"
                          :class="{selected: node._selected, file: 1, cutted: node._cutted}"
                          :data-hash="node.id"
-                         @touchend="select($event, node)"
+                         @click="select($event, node)"
                          @click.left="select($event, node)"
                          @click.right="select($event, node)">
 
