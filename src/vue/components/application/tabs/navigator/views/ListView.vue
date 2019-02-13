@@ -287,15 +287,14 @@
         .dir,
         .file,
         .header {
-            font-size: 0.65em;
+            font-size: 0.85em;
 
             .detail {
-                margin: 0 0.5em;
-                width: 80%;
+                display: none;
+            }
 
-                &:last-child {
-                    margin-right: 0;
-                }
+            &.header {
+                display: none;
             }
         }
     }

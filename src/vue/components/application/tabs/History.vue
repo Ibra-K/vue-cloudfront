@@ -406,4 +406,21 @@
         }
     }
 
+    @include mobile {
+        .action {
+
+            .description {
+                width: 100%;
+            }
+
+            .performed {
+                display: none;
+            }
+
+            &.actions-header {
+                display: none;
+            }
+        }
+    }
+
 </style>

@@ -52,6 +52,10 @@
         @include flex(column, center);
     }
 
+    .color-picker {
+        align-self: stretch;
+    }
+
     .pre-defined {
         @include flex(row, space-between, space-around);
         flex-wrap: wrap;

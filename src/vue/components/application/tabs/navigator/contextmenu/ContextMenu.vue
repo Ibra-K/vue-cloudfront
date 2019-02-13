@@ -355,12 +355,11 @@
 
         .option {
             @include flex(row, center);
-            padding: 0.35em 1em;
-            font-size: 0.85em;
+            padding: 0.5em 1em;
+            font-size: 0.9em;
             cursor: pointer;
             transition: all 0.3s;
             color: $palette-deep-blue;
-            margin: 0.25em 0;
 
             i {
                 font-size: 1.15em;
@@ -405,6 +404,7 @@
                     transition: all 0.3s;
                     cursor: default;
                     border-radius: 0.25em;
+                    width: 15em;
 
                     &.left {
                         left: auto;
@@ -430,7 +430,6 @@
         }
     }
 
-
     @include mobile {
         .menu {
             position: fixed;
@@ -440,9 +439,45 @@
             bottom: 0 !important;
             border-radius: 0;
             width: 100%;
+            font-size: 1.2em;
 
             &.top {
                 transform: none;
+            }
+
+            .option {
+
+                .name {
+                    margin-left: 1.5em;
+                }
+
+                :hover,
+                &.delete:hover {
+                    color: $palette-deep-blue;
+                }
+
+                &.sub {
+                    .sub-menu {
+                        transform: translateY(10px);
+                        @include position(auto, 0, 0, 0);
+                        margin: auto;
+                        width: 75vw;
+
+                        &.left {
+                            @include position(auto, 0, 0, 0);
+                        }
+
+                        &::before {
+                            content: none;
+                        }
+                    }
+
+                    &:hover .sub-menu {
+                        opacity: 1;
+                        transform: none;
+                        pointer-events: all;
+                    }
+                }
             }
         }
     }

@@ -257,6 +257,7 @@
         position: relative;
         cursor: pointer;
         border-radius: 0.15em;
+        width: 100%;
 
         .knob {
             position: absolute;
@@ -267,7 +268,9 @@
 
     .result {
         @include flex(row, stretch);
-        width: 13em;
+        align-self: stretch;
+        justify-self: stretch;
+        width: 100%;
 
         input {
             @include font(600, 0.85em, 0.05em);
