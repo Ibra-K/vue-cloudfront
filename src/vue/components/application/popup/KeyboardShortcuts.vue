@@ -38,7 +38,7 @@
                             {keys: ['s', 'd'], action: 'Select directories.'},
                             {keys: ['s', 'f'], action: 'Select files.'},
                             {keys: ['s', 'i'], action: 'Invert selection.'},
-                            {keys: ['enter'], action: 'Enter first selected direcotry.'},
+                            {keys: ['enter'], action: 'Enter first selected directory.'},
                             {keys: ['arrow-up'], action: 'Select next element.'},
                             {keys: ['arrow-down'], action: 'Select previous element.'}
                         ]
@@ -51,11 +51,13 @@
                             {keys: ['ctrl', 'c'], action: 'Copy folder / files.'},
                             {keys: ['ctrl', 'v'], action: 'Paste folder / files.'},
                             {keys: ['n', 's'], action: 'Share.'},
+                            {keys: ['z', 'i'], action: 'Create zip file out of selection.'},
                             {keys: ['n', 'f'], action: 'Create new folder.'},
                             {keys: ['e', 'n'], action: 'Edit the name.'},
                             {keys: ['m', 'a'], action: 'Marks selected files / folders.'},
                             {keys: ['m', 'r'], action: 'Removes the mark from selected files / folders.'},
-                            {keys: ['delete'], action: 'Deletes currently selected files / folders.'}
+                            {keys: ['delete'], action: 'Move selected files / folders to the bin.'},
+                            {keys: ['delete', 'shift'], action: 'Permanently delete selected files / folders.'}
                         ]
                     },
 
@@ -70,7 +72,7 @@
                             {keys: ['j', 'a'], action: 'Switch to history.'},
                             {keys: ['j', 's'], action: 'Switch to settigs.'},
                             {keys: ['tab'], action: 'Switch tabs.'},
-                            {keys: ['g', 'u'], action: 'Go up in hierarchy.'},
+                            {keys: ['backspace'], action: 'Go up in hierarchy.'},
                             {keys: ['esc'], action: 'Close any popup like menu or this page.'}
                         ]
                     },
@@ -102,7 +104,6 @@
                 const store = this.$store;
                 const state = store.state;
                 const {selection, clipboard, activeTab} = state;
-                const clipboardNodes = clipboard.nodes;
                 const currentLocation = state.location.node;
 
                 // Shortcuts which are only available at the home screen
@@ -121,7 +122,14 @@
                         return;
                     }
 
+                    // Zip nodes
+                    if (selection.length && keys.KeyZ && keys.KeyI) {
+                        store.dispatch('nodes/zip', {nodes: selection});
+                        return;
+                    }
+
                     // Paste nodes
+                    const clipboardNodes = clipboard.nodes;
                     if (clipboardNodes.length && keys.KeyV && keys.ctrlKey) {
 
                         // Move elements
@@ -141,7 +149,7 @@
                     }
 
                     // Hierarchy up event
-                    if (keys.KeyG && keys.KeyU) {
+                    if (keys.KeyBackspace) {
                         store.dispatch('location/goUp');
                         return;
                     }
@@ -283,7 +291,7 @@
 
                 // Delete nodes
                 if (keys.KeyDelete && selection.length) {
-                    store.dispatch('nodes/delete', selection);
+                    store.dispatch('nodes/delete', {nodes: selection, permanently: keys.shiftKey});
                     return;
                 }
 
@@ -383,9 +391,9 @@
 
                 .key {
                     margin-right: 0.5em;
-                    color: $palette-deep-purple;
-                    border: 1px solid rgba($palette-deep-purple, 0.75);
-                    border-bottom: 2px solid rgba($palette-deep-purple, 0.9);
+                    color: $palette-deep-blue;
+                    border: 1px solid rgba($palette-deep-blue, 0.75);
+                    border-bottom: 2px solid rgba($palette-deep-blue, 0.9);
                     border-radius: 2px;
                     padding: 0.05em 0.45em 0.1em 0.45em;
                 }

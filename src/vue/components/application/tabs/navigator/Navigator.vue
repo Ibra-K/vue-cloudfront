@@ -13,7 +13,7 @@
                 <!-- Node-views, grid and list -->
                 <i v-tooltip="'Switch to list view'"
                    v-show="viewType === 'grid'"
-                   class="fas fa-fw fa-th-list"
+                   class="fas fa-fw fa-bars"
                    @click="setViewType('list')"></i>
 
                 <i v-tooltip="'Switch to grid view'"
@@ -22,7 +22,7 @@
                    @click="setViewType('grid')"></i>
 
                 <!-- Show keyboard-shortcuts button -->
-                <i class="keyboard fas fa-fw fa-keyboard" @click="$store.commit('setActivePopup', 'KeyboardShortcuts')"></i>
+                <i class="far fa-fw fa-keyboard" @click="$store.commit('setActivePopup', 'KeyboardShortcuts')"></i>
 
                 <!-- Introduction -->
                 <intro-box id="2"
@@ -39,19 +39,8 @@
 
             <!-- Placeholder if folder is empty -->
             <div v-if="!nodes.file.length && !nodes.dir.length" class="placeholder">
-                <i class="fas fa-cloud"></i>
-
-                <span v-if="!search.active && activeTab === 'home'">
-                    <b>Create a folder</b> or <b>drag and drop</b> to upload!
-                </span>
-
-                <span v-if="!search.active && activeTab === 'marked'">
-                    Right click or use <b>m + a</b> to mark a file or directory!
-                </span>
-
-                <span v-if="search.active">
-                    Nothing does match your search.
-                </span>
+                <i class="fas fa-fw fa-box-open"></i>
+                <p>Nothing here...</p>
             </div>
         </div>
 
@@ -73,7 +62,7 @@
     import GridView    from './views/GridView';
     import ContextMenu from './contextmenu/ContextMenu';
     import SearchBar   from './SearchBar';
-    import IntroBox    from '../../../../ui/IntroBox';
+    import IntroBox    from '../../../../ui/specific/IntroBox';
 
     // Vue stuff
     import {mapState} from 'vuex';
@@ -188,14 +177,16 @@
                     update();
                 } else if (keys.KeyEnter) {
 
-                    // Find last dir and jump into it
+                    // Get last node
                     const {selection} = this.$store.state;
-                    for (let i = selection.length - 1; i >= 0; i++) {
-                        const node = selection[i];
+                    if (selection.length) {
+                        const lastNode = selection[selection.length - 1];
 
-                        if (node.type === 'dir') {
-                            this.$store.commit('location/update', node);
-                            return;
+                        // If directory, open it. If file, open file-preview
+                        if (lastNode.type === 'dir') {
+                            this.$store.commit('location/update', lastNode);
+                        } else if (lastNode.type === 'file') {
+                            this.$store.commit('filepreview/show', {nodes: this.nodes.file});
                         }
                     }
                 }
@@ -241,7 +232,7 @@
                 }
 
                 &:hover {
-                    color: $palette-deep-purple;
+                    color: $palette-theme-primary;
                 }
             }
         }
@@ -267,18 +258,30 @@
         }
 
         .placeholder {
-            flex-grow: 1000;
-            color: $palette-decent-blue;
-            @include position(0, 0, 0, 0);
             @include flex(column, center, center);
+            width: 100%;
+            flex-grow: 1000;
+            padding-bottom: 10%;
+            color: $palette-deep-blue;
+
+            p {
+                @include font(600, 0.9em);
+            }
 
             i {
                 font-size: 2em;
+                margin-bottom: 0.3em;
             }
 
-            span {
-                @include font(400, 0.85em);
-                margin-top: 0.2em;
+            @include animate('0.3s ease-in-out') {
+                from {
+                    opacity: 0;
+                    transform: translateY(-0.5em);
+                }
+                to {
+                    opacity: 1;
+                    transform: none;
+                }
             }
         }
     }

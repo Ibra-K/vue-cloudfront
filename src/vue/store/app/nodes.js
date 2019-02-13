@@ -1,3 +1,6 @@
+import websocket from '../../../socket/socket';
+import {pick}    from '../../../js/utils';
+
 export const nodes = {
 
     namespaced: true,
@@ -16,40 +19,20 @@ export const nodes = {
          * viewing the marked nodes.
          */
         currentDisplayedNodes(state, getters, rootState) {
+            const {search, location, activeTab} = rootState;
 
-            /**
-             * Return a function which expects as argument if the size
-             * of each folder should be calculated.
-             */
-            return includeFolderSize => {
-                const {selection, clipboard, editable, search, location} = rootState;
-                const selectionNodes = selection;
-                const clipboardNodes = clipboard.nodes;
-                const editableNode = editable.node;
+            const calcFolderSize = (() => {
+                const memoization = new Map();
 
-                /**
-                 * The nodes which should be shown changed if
-                 * the user performs a search of want to see all currently starred nodes.
-                 */
-                const nodes = (() => {
-                    if (search.active) {
-                        return search.nodes;
-                    } else if (rootState.activeTab === 'marked') {
-                        return state.filter(v => v.marked);
-                    } else {
-                        return state;
-                    }
-                })();
-
-                const stateNodesAmount = nodes.length;
-                const locHash = location.node && location.node.id;
-                const ret = {file: [], dir: []}; // Seperate files and folders
-
-                function calcFolderSize(hash) {
+                return hash => {
                     let size = 0;
 
+                    if (memoization.has(hash)) {
+                        return memoization.get(hash);
+                    }
+
                     // Find childrens of current location
-                    for (let i = 0, n; n = nodes[i], i < stateNodesAmount; i++) {
+                    for (let i = 0, n, total = state.length; n = state[i], i < total; i++) {
                         if (n.parent === hash) {
                             const {type} = n;
 
@@ -62,23 +45,45 @@ export const nodes = {
                         }
                     }
 
+                    memoization.set(hash, size);
                     return size;
-                }
+                };
+            })();
+
+            /**
+             * Return a function which expects as argument if the size
+             * of each folder should be calculated.
+             */
+            return includeFolderSize => {
+
+                /**
+                 * The nodes which should be shown changed if
+                 * the user performs a search of want to see all currently starred nodes.
+                 */
+                const nodes = (() => {
+                    if (search.active) {
+                        return search.nodes;
+                    } else if (activeTab === 'marked') {
+                        return state.filter(v => v.marked && !v.bin);
+                    } else if (activeTab === 'bin') {
+                        return state.filter(v => v.bin);
+                    } else {
+                        return state.filter(v => !v.bin);
+                    }
+                })();
+
+                const nodesAmount = nodes.length;
+                const locHash = location.node && location.node.id;
+                const ret = {file: [], dir: []}; // Seperate files and folders
 
                 // Find folder and files which has the current locations as parent
                 // and calculate size
-                const autoAdd = rootState.activeTab === 'marked' || search.active;
-                for (let i = 0, n; n = nodes[i], i < stateNodesAmount; i++) {
+                const autoAdd = activeTab === 'marked' || activeTab === 'bin' || search.active;
+                for (let i = 0, n; n = nodes[i], i < nodesAmount; i++) {
 
                     // Check if parent is the current location
                     if (autoAdd || n.parent === locHash) {
                         const {type} = n;
-
-                        // Pre calculations
-                        n.cutted = clipboard.type === 'move' && clipboardNodes.includes(n);
-                        n.selected = selectionNodes.includes(n);
-                        n.editable = n === editableNode;
-                        ret[type].push(n);
 
                         // Calculate recursivly the size of each folder
                         if (includeFolderSize && type === 'dir') {
@@ -90,6 +95,8 @@ export const nodes = {
                             const extensionCut = n.name.lastIndexOf('.');
                             n.extension = ~extensionCut ? n.name.substring(extensionCut + 1) : '?';
                         }
+
+                        ret[type].push(n);
                     }
                 }
 
@@ -103,10 +110,42 @@ export const nodes = {
         // Adds nodes to the collection
         put(state, {nodes}) {
             if (Array.isArray(nodes)) {
+                websocket.broadcast('nodes', 'put', nodes);
                 state.push(...nodes);
             }
-        }
+        },
 
+        // Websocket sync
+        socketSync(state, {action, payload}) {
+            switch (action) {
+                case 'put': {
+                    return state.push(...payload);
+                }
+                case 'change': {
+
+                    for (let i = 0, l = payload.length; i < l; i++) {
+                        const changes = payload[i];
+                        const node = state.find(v => v.id === changes.id);
+
+                        if (node) {
+                            Object.assign(node, changes);
+                        }
+                    }
+
+                    return state.splice(0, state.length, ...state);
+                }
+                case 'delete': {
+
+                    for (let i = 0, l = payload.length; i < l; i++) {
+                        const index = state.findIndex(v => v.id === payload[i]);
+
+                        if (~index) {
+                            state.splice(index, 1);
+                        }
+                    }
+                }
+            }
+        }
     },
 
     actions: {
@@ -143,6 +182,27 @@ export const nodes = {
                     this.commit('location/update', root);
                 }
 
+                /**
+                 * To prevent nodes from poppin' up during search find all
+                 * sub-nodes from every node which has been moved to the bin and mark
+                 * these via _subBin. These nodes will be skipped while searching.
+                 * @type {Array}
+                 */
+                const binDirs = [];
+                for (let i = 0, count = nodes.length; i < count; i++) {
+                    const n = nodes[i];
+
+                    if (!n._subBin && (n.bin || binDirs.includes(n.parent))) {
+
+                        if (n.type === 'dir') {
+                            binDirs.push(n.id);
+                        }
+
+                        n._subBin = true;
+                        i = 0;
+                    }
+                }
+
                 state.splice(0, state.length, ...nodes);
             });
         },
@@ -166,6 +226,7 @@ export const nodes = {
                 }
             }).then(({node}) => {
                 state.push(node);
+                websocket.broadcast('nodes', 'put', [node]);
                 return node;
             });
         },
@@ -177,19 +238,17 @@ export const nodes = {
          * @param parent
          * @param folders
          */
-        createFolders({state, rootState}, {folders, parent}) {
+        createFolders({rootState}, {folders, parent}) {
 
             // Fetch from server
             return this.dispatch('fetch', {
                 route: 'createFolders',
+                silent: true,
                 body: {
                     apikey: rootState.auth.apikey,
                     parent: parent.id,
                     folders
                 }
-            }).then(({nodes, idMap}) => {
-                state.push(...nodes);
-                return {nodes, idMap};
             });
         },
 
@@ -217,6 +276,7 @@ export const nodes = {
 
                 // Update nodes locally to save ressources
                 nodes.forEach(n => n.parent = destination.id);
+                websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'parent')));
             });
         },
 
@@ -245,6 +305,7 @@ export const nodes = {
 
                 // Add new nodes
                 state.push(...nodes);
+                websocket.broadcast('nodes', 'put', nodes);
                 return nodes;
             });
         },
@@ -254,10 +315,16 @@ export const nodes = {
          * @param state
          * @param rootState
          * @param nodes Nodes which should be deleted
+         * @param permanently Force permanently remove
          */
-        async delete({state, rootState}, nodes) {
+        async delete({state, rootState}, {nodes, permanently = false}) {
+            const prm = permanently || nodes.every(v => v.bin);
+
+            // Clear clipboard
+            this.commit('clipboard/clear');
+
             return this.dispatch('fetch', {
-                route: 'delete',
+                route: prm ? 'delete' : 'moveToBin',
                 body: {
                     apikey: rootState.auth.apikey,
                     nodes: nodes.map(v => v.id)
@@ -265,25 +332,82 @@ export const nodes = {
             }).then(() => {
 
                 // Update nodes locally to save ressources
-                const rm = node => {
+                nodes.forEach(function rm(node) {
                     if (node.type === 'dir') {
                         for (let i = 0; i < state.length; i++) {
                             if (state[i].parent === node.id) {
                                 rm(state[i]);
-                                i = 0;
+                                prm && (i = 0);
                             }
                         }
                     }
-                    const idx = state.indexOf(node);
-                    state.splice(idx, 1);
-                };
 
-                nodes.forEach(rm);
+                    if (prm) {
+                        const idx = state.indexOf(node);
+                        state.splice(idx, 1);
+                    } else {
+                        node._subBin = true;
+                    }
+                });
+
+                if (!prm) {
+                    nodes.forEach(v => {
+                        v.bin = true;
+                        v.lastModified = Date.now();
+                    });
+
+                    websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'bin', 'lastModified')));
+                } else {
+                    websocket.broadcast('nodes', 'delete', nodes.map(v => v.id));
+                }
+
+                state.splice(0, state.length, ...state);
+            });
+        },
+
+        /**
+         * Restores nodes from bin
+         *
+         * @param state
+         * @param rootState
+         * @param nodes
+         * @returns {Promise<void>}
+         */
+        async restore({state, rootState}, nodes) {
+            return this.dispatch('fetch', {
+                route: 'restoreFromBin',
+                body: {
+                    apikey: rootState.auth.apikey,
+                    nodes: nodes.map(v => v.id)
+                }
+            }).then(() => {
+
+                // Update nodes locally to save ressources
+                nodes.forEach(function rm(node) {
+                    if (node.type === 'dir') {
+                        for (let i = 0; i < state.length; i++) {
+                            if (state[i].parent === node.id) {
+                                rm(state[i]);
+                            }
+                        }
+                    }
+
+                    node._subBin = false;
+                });
+
+                nodes.forEach(v => {
+                    v.bin = false;
+                    v.lastModified = Date.now();
+                });
+
+                websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'bin', 'lastModified')));
+                state.splice(0, state.length, ...state);
             });
         },
 
         /**
          * Marks nodes. Can be viewed in the marked menu-section.
+         * @param rootState
          * @param nodes Nodes which get a mark.
          */
         async addMark({rootState}, nodes) {
@@ -296,14 +420,18 @@ export const nodes = {
             }).then(() => {
 
                 // Update node locally to save ressources
-                for (let i = 0, n; n = nodes[i], i < nodes.length; i++) {
-                    n.marked = true;
-                }
+                nodes.forEach(v => {
+                    v.marked = true;
+                    v.lastModified = Date.now();
+                });
+
+                websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'marked', 'lastModified')));
             });
         },
 
         /**
          * Removes a mark from nodes.
+         * @param rootState
          * @param nodes Nodes from which the mark gets removed.
          */
         async removeMark({rootState}, nodes) {
@@ -316,9 +444,12 @@ export const nodes = {
             }).then(() => {
 
                 // Update node locally to save ressources
-                for (let i = 0, n; n = nodes[i], i < nodes.length; i++) {
-                    n.marked = false;
-                }
+                nodes.forEach(v => {
+                    v.marked = false;
+                    v.lastModified = Date.now();
+                });
+
+                websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'marked', 'lastModified')));
             });
         },
 
@@ -341,6 +472,8 @@ export const nodes = {
                 // Update node locally to save ressources
                 node.lastModified = Date.now();
                 node.name = newName;
+
+                websocket.broadcast('nodes', 'change', [pick(node, 'id', 'lastModified', 'name')]);
             });
         },
 
@@ -361,7 +494,12 @@ export const nodes = {
             }).then(() => {
 
                 // Override color
-                nodes.forEach(n => n.color = color);
+                nodes.forEach(v => {
+                    v.color = color;
+                    v.lastModified = Date.now();
+                });
+
+                websocket.broadcast('nodes', 'change', nodes.map(v => pick(v, 'id', 'color', 'lastModified')));
             });
         },
 
@@ -382,6 +520,8 @@ export const nodes = {
                 // Append link
                 node.staticIds = node.staticIds || [];
                 node.staticIds.push(id);
+
+                websocket.broadcast('nodes', 'change', [pick(node, 'id', 'staticIds')]);
                 return id;
             });
         },
@@ -391,19 +531,40 @@ export const nodes = {
          * @param rootState
          * @param node
          */
-        async removeStaticId({rootState}, {node, id}) {
+        async removeStaticId({rootState}, {node, ids}) {
             return this.dispatch('fetch', {
                 route: 'removeStaticId',
                 body: {
                     apikey: rootState.auth.apikey,
                     node: node.id,
-                    id
+                    ids
                 }
             }).then(() => {
 
                 // Append link
                 node.staticIds = node.staticIds || [];
-                node.staticIds = node.staticIds.filter(v => v !== id);
+                node.staticIds = node.staticIds.filter(id => !ids.includes(id));
+                websocket.broadcast('nodes', 'change', [pick(node, 'id', 'staticIds')]);
+            });
+        },
+
+        /**
+         * Creates a zip-file out of a bunch of nodes
+         * @param rootState
+         * @param nodes
+         * @returns {Promise<void>}
+         */
+        async zip({state, rootState}, {nodes}) {
+            return this.dispatch('fetch', {
+                route: 'zip',
+                body: {
+                    apikey: rootState.auth.apikey,
+                    nodes: nodes.map(v => v.id)
+                }
+            }).then(({node}) => {
+                state.push(node);
+                websocket.broadcast('nodes', 'put', [node]);
+                return node;
             });
         }
     }

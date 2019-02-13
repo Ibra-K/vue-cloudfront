@@ -10,7 +10,7 @@
                    placeholder="Search..."
                    spellcheck="false"
                    type="text"
-                   @input="updateSearch()">
+                   @input="updateSearch">
             <i :class="{delete: 1, 'fas fa-times': 1, visible: searchQuery.length}" @click="clear"></i>
 
             <!-- Show available filters -->
@@ -45,9 +45,9 @@
 <script>
 
     // Components
-    import MultiSwitchButton from '../../../../ui/TextSwitchButton';
-    import SimpleButton      from '../../../../ui/TextToggleButton';
-    import IntroBox          from '../../../../ui/IntroBox';
+    import MultiSwitchButton from '../../../../ui/input/TextSwitchButton';
+    import SimpleButton      from '../../../../ui/input/TextToggleButton';
+    import IntroBox          from '../../../../ui/specific/IntroBox';
 
     export default {
 
@@ -141,12 +141,12 @@
 
         &:focus-within {
             i {
-                color: $palette-deep-purple;
+                color: $palette-theme-primary;
             }
         }
 
         input {
-            @include font(400, 0.85em);
+            @include font(400, 0.9em);
             color: $palette-deep-blue;
             flex-grow: 1;
 
@@ -186,7 +186,7 @@
             transition: all 0.5s;
 
             &:hover {
-                color: $palette-deep-purple;
+                color: $palette-theme-primary;
             }
         }
     }

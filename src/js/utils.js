@@ -216,11 +216,14 @@ export function toBytes(size) {
 /**
  * Convert a byte size to an human readable size.
  * e.g. 123456 => '123.46 kB'
+ * @param bytes
+ * @param mapValue Optional mapper to manipulate the raw number
+ * @returns {string}
  */
-export function readableByteCount(bytes) {
+export function readableByteCount(bytes, mapValue = v => v) {
     bytes = Number(bytes);
 
-    const si = config.sizeSIPrefix;
+    const si = config.binaryPrefix;
     const unit = si ? 1000 : 1024;
     const block = bytes / unit;
 
@@ -232,7 +235,7 @@ export function readableByteCount(bytes) {
         if (block < Math.pow(unit, i)) {
             const size = (block / Math.pow(unit, i - 1)).toFixed(2);
             const desc = ' ' + (si ? 'kMGTPEB' : 'kMGTPEiB').charAt(i - 1) + (si ? '' : 'i') + 'B';
-            return size + desc;
+            return mapValue(size) + desc;
         }
     }
 
@@ -253,8 +256,8 @@ export const fileSystemUtils = {
             const entries = [];
 
             for (; ;) {
-                const newEntries = await new Promise(resolve1 => {
-                    dirItemReader.readEntries(entries => resolve1(entries));
+                const newEntries = await new Promise(res => {
+                    dirItemReader.readEntries(entries => res(entries));
                 });
 
                 if (newEntries.length) {
@@ -289,3 +292,37 @@ export const fileSystemUtils = {
         });
     }
 };
+
+/**
+ * Wraps boundaries around a value and prevents overflowing these.
+ * @param value
+ * @param min
+ * @param max
+ * @returns {*}
+ */
+export function limit(value, min, max) {
+    if (value < min) {
+        return min;
+    } else if (value > max) {
+        return max;
+    }
+
+    return value;
+}
+
+/**
+ * Pick specific props from an object
+ * @param object
+ * @param props
+ */
+export function pick(object, ...props) {
+    const newObj = {};
+
+    for (let i = 0, l = props.length; i < l; i++) {
+        const prop = props[i];
+        newObj[prop] = object[prop];
+    }
+
+    return newObj;
+}
+

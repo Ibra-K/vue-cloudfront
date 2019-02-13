@@ -34,7 +34,7 @@
 <script>
 
     // Components
-    import TextInputField from '../../../ui/TextInputField';
+    import TextInputField from '../../../ui/input/TextInputField';
     import TabContainer   from '../TabContainer';
 
     export default {
@@ -152,10 +152,10 @@
             }
 
             &.update {
-                background: $palette-deep-purple;
+                background: $palette-theme-primary;
 
                 &:hover {
-                    background: darken($palette-deep-purple, 3);
+                    background: darken($palette-theme-primary, 3);
                 }
             }
         }

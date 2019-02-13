@@ -25,8 +25,9 @@
                 ['drag', 'dragend', 'dragenter', 'dragstart', 'dragleave', 'dragover', 'drop'],
                 e => {
 
-                    if (this.$store.state.data.upload.active) {
-                        return;
+                    // Prevent upload during action
+                    if (this.$store.state.requestsActive) {
+                        return e.preventDefault();
                     }
 
                     if (e.type === 'dragenter') {
@@ -69,7 +70,7 @@
         z-index: 155;
 
         i, p {
-            color: $palette-deep-purple;
+            color: $palette-theme-primary;
             @include animate('0.5s ease-in-out') {
                 from {
                     transform: translateY(0.25em);

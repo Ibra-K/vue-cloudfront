@@ -16,6 +16,12 @@
                        text="Mark your important files, folder or just use it as a quick way to access them."/>
         </div>
 
+        <div v-tooltip="'Removed files / folders'"
+             :class="{'item': 1, active: activeTab === 'bin'}"
+             @click="changeTab('bin')">
+            <i class="fas fa-fw fa-trash-alt"></i>
+        </div>
+
         <div v-tooltip="'View history'"
              :class="{'item': 1, active: activeTab === 'history'}"
              @click="changeTab('history')">
@@ -26,7 +32,7 @@
 
         <div v-tooltip="'Refresh'"
              class="item bottom"
-             @click="refresh()">
+             @click="refresh">
             <i class="fas fa-fw fa-sync-alt"></i>
         </div>
 
@@ -48,7 +54,7 @@
 <script>
 
     // Components
-    import IntroBox from '../../ui/IntroBox';
+    import IntroBox from '../../ui/specific/IntroBox';
 
     // Vue stuff
     import {mapState} from 'vuex';
@@ -136,11 +142,11 @@
         }
 
         &.active i {
-            color: $palette-deep-purple;
+            color: $palette-theme-primary;
         }
 
         &:not(.active):hover i {
-            color: darken($palette-decent-blue, 5);
+            color: $palette-deep-blue;
         }
 
         &.bottom {

@@ -17,7 +17,7 @@
         </div>
 
         <!-- Actual application -->
-        <index class="app-content"/>
+        <cloudfront class="app-content"/>
 
     </div>
 </template>
@@ -31,26 +31,24 @@
     import 'normalize.css';
 
     // Components
-    import Index from './components/Index';
+    import Cloudfront from './components/Cloudfront';
 
     export default {
 
-        components: {Index},
+        components: {Cloudfront},
 
         data() {
             return {};
         },
 
         beforeCreate() {
+
+            // Try to recreate session
             const apikey = localStorage.getItem('apikey');
 
             if (apikey) {
                 this.$store.dispatch('auth/key', {apikey});
             }
-
-            setTimeout(() => {
-                this.utils.on(Array.from(document.querySelectorAll('input,textarea')), 'focus', alert);
-            }, 2000);
         }
     };
 </script>
@@ -61,7 +59,7 @@
     button,
     textarea,
     input {
-        font-family: $font-family-open-sans;
+        font-family: $font-family;
         outline: none;
         border: none;
         background: transparent;
@@ -101,6 +99,7 @@
 
     body {
         background: $palette-snow-white;
+        font-family: $font-family;
     }
 
     .app-background {
@@ -110,7 +109,7 @@
 
         svg {
             position: fixed;
-            fill: $palette-bright-purple;
+            fill: $palette-theme-secondary;
             @include size(100vmax);
 
             @include animate('1s ease') {
@@ -139,7 +138,7 @@
         @include width(70%, 0, 1400px);
         @include height(90%, 0, 950px);
         @include position(0, 0, 0, 0);
-        border-radius: 0.5em;
+        border-radius: 0.2em;
         margin: auto;
         box-shadow: 0 0.4em 2.5em 0 rgba($palette-deep-blue, 0.13);
     }

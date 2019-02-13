@@ -7,10 +7,10 @@
 
             <!-- Folders -->
             <h1 v-if="nodes.dir.length">Folders</h1>
-            <div class="grid-container">
+            <div class="flex-container">
                 <div v-double-tap="() => updateLocation(node)"
                      v-for="node of croppedNodes.dir"
-                     :class="{selected: node.selected, dir: 1, cutted: node.cutted}"
+                     :class="{selected: node._selected, dir: 1, cutted: node._cutted}"
                      :data-hash="node.id"
                      @touchend="select($event, node)"
                      @click.left="select($event, node)"
@@ -18,8 +18,9 @@
 
                     <i :class="{'fas fa-fw fa-bookmark bookmark': 1, visible: node.marked}" :style="{color: node.color}"></i>
                     <i :style="{color: node.color}" class="fas fa-fw fa-folder"></i>
-                    <span v-select-all="node.editable"
-                          :contenteditable="node.editable"
+
+                    <span v-content-editable="node._editable"
+                          v-select-all="node._editable"
                           class="name"
                           spellcheck="false"
                           @keydown.enter.prevent="renameNode($event, node)">{{ node.name }}</span>
@@ -29,21 +30,33 @@
             <!-- Files -->
             <h1 v-if="nodes.file.length">Files</h1>
             <div class="grid-container">
-                <div v-double-tap="() => $store.commit('filepreview/show', {nodes: nodes.file, index})"
-                     v-for="(node, index) of croppedNodes.file"
-                     :class="{selected: node.selected, file: 1, cutted: node.cutted}"
-                     :data-hash="node.id"
-                     @touchend="select($event, node)"
-                     @click.left="select($event, node)"
-                     @click.right="select($event, node)">
+                <div v-for="(node, index) of croppedNodes.file" class="wrapper">
+                    <div v-double-tap="() => $store.commit('filepreview/show', {nodes: nodes.file, index})"
+                         :class="{selected: node._selected, file: 1, cutted: node._cutted}"
+                         :data-hash="node.id"
+                         @touchend="select($event, node)"
+                         @click.left="select($event, node)"
+                         @click.right="select($event, node)">
 
-                    <i :class="{'fas fa-fw fa-bookmark bookmark': 1, visible: node.marked}" :style="{color: node.color}"></i>
-                    <span class="extension">{{ node.extension }}</span>
-                    <span v-select-all="node.editable"
-                          :contenteditable="node.editable"
-                          class="name"
-                          spellcheck="false"
-                          @keydown.enter.prevent="renameNode($event, node)">{{ node.name }}</span>
+                        <embed-file-preview :node="node">
+
+                            <!-- Fallback if no preview is available -->
+                            <button @click="$store.dispatch('data/download', {node})">
+                                Download ({{ node.size | readableByteCount }})
+                            </button>
+                        </embed-file-preview>
+
+                        <div class="info">
+                            <i :class="{'fas fa-fw fa-bookmark bookmark': 1, visible: node.marked}" :style="{color: node.color}"></i>
+                            <span v-if="node.extension" class="extension">{{ node.extension }}</span>
+
+                            <span v-content-editable="node._editable"
+                                  v-select-all="node._editable"
+                                  class="name"
+                                  spellcheck="false"
+                                  @keydown.enter.prevent="renameNode($event, node)">{{ node.name }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -54,12 +67,19 @@
 <script>
 
     // Config stuff
-    import {visibleNodesLimit} from '../../../../../../../config/config';
+    import {visibleNodesChunkSize} from '../../../../../../../config/config';
 
     // Selectable plugin
     import Selectable from '../plugins/selectable';
 
+    // File preview
+    import EmbedFilePreview from '../../../overlay/filepreview/EmbedFilePreview';
+
+    import shared from './shared';
+
     export default {
+        components: {EmbedFilePreview},
+
         props: {
             nodes: {
                 type: Object,
@@ -69,32 +89,17 @@
 
         data() {
             return {
-                fileLimit: visibleNodesLimit,
-                dirLimit: visibleNodesLimit
+                fileLimit: visibleNodesChunkSize,
+                dirLimit: visibleNodesChunkSize
             };
         },
 
         computed: {
-            croppedNodes() {
-                const {fileLimit, dirLimit} = this;
-                return {
-                    file: this.nodes.file.slice(0, fileLimit),
-                    dir: this.nodes.dir.slice(0, dirLimit)
-                };
-            }
+            ...shared.computed
         },
 
         watch: {
-            nodes(newValue, oldValue) {
-
-                // Mostly props get's changed. Update only if array lengths are changing
-                if (newValue.dir.length !== oldValue.dir.length || newValue.file.length !== oldValue.file.length) {
-
-                    this.dirLimit = visibleNodesLimit;
-                    this.fileLimit = visibleNodesLimit;
-                    this.riseVisibleArea();
-                }
-            }
+            ...shared.watch
         },
 
         mounted() {
@@ -106,89 +111,7 @@
         },
 
         methods: {
-            scroll({target}) {
-                if (target.scrollHeight - (target.scrollTop + target.offsetHeight) < 25) {
-                    this.increaseVisibleArea();
-                }
-            },
-
-            increaseVisibleArea() {
-                if (this.dirLimit < this.nodes.dir.length) {
-                    this.dirLimit += visibleNodesLimit;
-                    return true;
-                }
-
-                if (this.fileLimit < this.nodes.file.length) {
-                    this.fileLimit += visibleNodesLimit;
-                    return true;
-                }
-
-                return false;
-            },
-
-            riseVisibleArea() {
-                const listEl = this.$refs.list;
-
-                const check = () => {
-                    requestAnimationFrame(() => {
-                        if (listEl.scrollHeight === listEl.offsetHeight && this.increaseVisibleArea()) {
-                            check();
-                        }
-                    });
-                };
-
-                check();
-            },
-
-            updateLocation(node) {
-                this.$store.commit('setActiveTab', 'home');
-                this.$store.commit('location/update', node);
-            },
-
-            renameNode(evt, node) {
-                this.$store.commit('editable/clear');
-
-                // Try to rename, restore previous value if failed
-                this.$store.dispatch('nodes/rename', {
-                    node,
-                    newName: evt.target.innerHTML
-                }).catch(() => {
-                    evt.target.innerHTML = node.name;
-                });
-            },
-
-            select(evt, node) {
-                const state = this.$store.state;
-
-                /**
-                 * Clear selection if
-                 *  - User hasn't pressed the ctrlKey and used NOT right click (which would open the menu)
-                 *  - User used right click AND the node isn't already selected
-                 */
-                if ((!evt.ctrlKey && evt.button !== 2) ||
-                    (evt.button === 2 && !state.selection.includes(node))) {
-                    this.$store.commit('selection/clear');
-                } else if (evt.ctrlKey && evt.shiftKey) {
-
-                    // Select all nodes from 0 or an already selected to the target node
-                    const selection = state.selection;
-                    const nodes = this.nodes.dir.concat(this.nodes.file);
-
-                    // Find start and end point
-                    const [start, end] = [
-                        selection.length ? nodes.indexOf(selection[0]) : 0,
-                        nodes.indexOf(node)
-                    ].sort((a, b) => a - b);
-
-                    // Append rage-nodes to selection
-                    this.$store.commit('selection/append', nodes.slice(start, end + 1));
-                    return;
-                }
-
-                // Toggle
-                const action = evt.button !== 2 && state.selection.includes(node) ? 'remove' : 'append';
-                this.$store.commit(`selection/${action}`, [node]);
-            }
+            ...shared.methods
         }
     };
 
@@ -204,8 +127,9 @@
     .list {
         height: 0;
         flex-grow: 1;
-        overflow: auto;
-        padding-bottom: 0.5em;
+        overflow-y: auto;
+        padding: 0 0.25em;
+        padding-bottom: 2.5em;
     }
 
     h1 {
@@ -218,25 +142,98 @@
         margin: 1.5em 0 0.2em;
     }
 
-    .grid-container {
+    .flex-container {
         @include flex(row, flex-start);
         flex-wrap: wrap;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(13em, 1fr));
+    }
+
+    .dir {
+        @include flex(row, center);
+        margin: 0.5em 0.5em 0 0;
+        cursor: pointer;
+        border: 1px solid transparent;
+        max-width: 15em;
+
+        > i {
+            font-size: 1.25em;
+        }
+    }
+
+    .file {
+        @include flex(column);
+        margin: 0 1em 1em 0;
+        cursor: pointer;
+
+        .embed-file-preview {
+            align-items: flex-start;
+            justify-content: flex-start;
+            position: relative;
+            max-width: 100%;
+            max-height: 12.5em;
+            flex-grow: 1;
+            overflow: hidden;
+
+            &:not(.empty) {
+                margin-bottom: 1em;
+            }
+
+            &::before {
+                @include pseudo();
+                @include position(auto, 0, -0.25em, 0);
+                background: linear-gradient(to bottom, transparent, white 50%);
+                height: 5%;
+            }
+
+            &.empty {
+                margin: 0.5em 0;
+
+                > i {
+                    @include font(600, 0.9em);
+                    width: 100%;
+                    text-align: center;
+                    color: $palette-deep-blue;
+                    margin-top: 0.75em;
+                }
+
+                > button {
+                    @include font(600, 0.95em);
+                    margin: 0 auto;
+                    background: $palette-deep-blue;
+                    color: $palette-snow-white;
+                    transition: all 0.3s;
+                    padding: 0.4em 0.8em;
+                    border-radius: 0.15em;
+                    width: 100%;
+
+                    &:hover {
+                        background: lighten($palette-deep-blue, 5);
+                    }
+                }
+            }
+        }
+
+        .info {
+            @include flex(row, center, flex-start);
+            padding: 0.25em 0;
+            overflow: hidden;
+            margin-top: auto;
+        }
     }
 
     .dir,
     .file {
         position: relative;
-        @include flex(row, center);
-        padding: 0.5em 0.9em;
-        margin: 0.5em 0.5em 0 0;
-        border-radius: 0.15em;
-        transition: all 0.3s;
-        cursor: pointer;
+        border-radius: 0.2em;
         font-size: 0.8em;
-        box-shadow: 0 1px 3px 0 rgba(black, 0.05);
+        box-shadow: 0 1px 3px 0 rgba(black, 0.1);
         background: white;
         border: 1px solid transparent;
-        max-width: 15em;
+        padding: 0.5em 0.9em;
 
         .bookmark {
             position: absolute;
@@ -267,20 +264,19 @@
             color: white;
         }
 
-        &.selected {
-            border-color: rgba($palette-cloud-blue, 0.5);
-            box-shadow: 0 1px 8px 0 rgba($palette-cloud-blue, 0.15);
-
-            .name,
-            .detail {
-                color: $palette-cloud-blue;
-            }
-        }
-
+        &.selected,
         &.droppable {
             border-color: rgba($palette-cloud-blue, 0.75);
-            box-shadow: 0 1px 8px 0 rgba($palette-cloud-blue, 0.5);
-            transform: translateY(-2px);
+            box-shadow: 0 1px 3px 0 rgba($palette-cloud-blue, 0.5),
+            0 0 0 1px rgba($palette-cloud-blue, 0.75);
+
+            &.droppable {
+                box-shadow: 0 1px 8px 0 rgba($palette-cloud-blue, 0.5),
+                0 0 0 1px rgba($palette-cloud-blue, 0.75);
+
+                transform: translateY(-2px);
+                transition: all 0.3s;
+            }
         }
 
         &.cutted {
@@ -300,9 +296,10 @@
             transition: all 0.3s;
             white-space: nowrap;
             overflow: hidden;
+            width: 100%;
 
             &[contenteditable=true] {
-                border-color: $palette-deep-purple;
+                border-color: $palette-theme-primary;
                 cursor: text;
                 outline: none;
             }
@@ -316,4 +313,5 @@
             }
         }
     }
+
 </style>

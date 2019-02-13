@@ -1,78 +1,96 @@
 <template>
-    <div class="context-menu">
+    <div ref="menu"
+         :class="{menu: 1, open}"
+         :style="style">
 
-        <div ref="menu"
-             :class="{menu: 1, open}"
-             :style="style">
+        <div v-if="search.active && nodes.length === 1"
+             class="option"
+             @click="jump">
+            <i class="fas fa-fw fa-compass"></i>
+            <span class="name">Locate</span>
+        </div>
 
-            <div v-if="marked || type === 'files' || type === 'dir' || type === 'mixed'"
-                 class="option star"
-                 @click="star()">
-                <i :class="`fa${marked ? 'r' : 's'} fa-fw fa-bookmark`"></i>
-                <span class="name">{{ marked ? 'Remove mark' : 'Add mark' }}</span>
-            </div>
+        <div v-if="marked || type === 'files' || type === 'dir' || type === 'mixed'"
+             class="option star"
+             @click="star">
+            <i :class="`fa${ marked === 2 ? 'r' : 's'} fa-fw fa-bookmark`"></i>
+            <span class="name">{{ marked === 2 ? 'Remove mark' : 'Add mark' }}</span>
+        </div>
 
-            <div v-if="type === 'files' || type === 'dir' || type === 'mixed'"
-                 class="option delete"
-                 @click="del()">
-                <i class="fas fa-fw fa-trash-alt"></i>
-                <span class="name">Delete</span>
-            </div>
+        <div v-if="type === 'files' || type === 'dir' || type === 'mixed'"
+             class="option delete"
+             @click="del">
+            <i class="fas fa-fw fa-trash-alt"></i>
+            <span class="name">{{ deleted ? 'Delete forever' : 'Remove' }}</span>
+        </div>
 
-            <div v-if="type === 'files' && nodes.length === 1"
-                 class="option"
-                 @click="download()">
-                <i class="fas fa-fw fa-download"></i>
-                <span class="name">Download</span>
-            </div>
+        <div v-if="deleted"
+             class="option"
+             @click="restore">
+            <i class="fas fa-fw fa-redo"></i>
+            <span class="name">Restore</span>
+        </div>
 
-            <div v-if="!search.active && activeTab === 'home'"
-                 class="option"
-                 @click="newFolder()">
-                <i class="fas fa-fw fa-folder-plus"></i>
-                <span class="name">New Folder</span>
-            </div>
+        <div v-if="nodes.length === 1"
+             class="option"
+             @click="download">
+            <i class="fas fa-fw fa-download"></i>
+            <span class="name">Download</span>
+        </div>
 
-            <div v-if="nodes.length === 1"
-                 class="option"
-                 @click="edit()">
-                <i class="fas fa-fw fa-pen"></i>
-                <span class="name">Rename</span>
-            </div>
+        <div v-if="!search.active && activeTab === 'home'"
+             class="option"
+             @click="newFolder">
+            <i class="fas fa-fw fa-folder-plus"></i>
+            <span class="name">New Folder</span>
+        </div>
 
-            <div v-if="nodes.length && activeTab === 'home'"
-                 class="option"
-                 @click="moveToClipboard('copy')">
-                <i class="fas fa-fw fa-copy"></i>
-                <span class="name">Copy</span>
-            </div>
+        <div v-if="nodes.length === 1"
+             class="option"
+             @click="edit">
+            <i class="fas fa-fw fa-pen"></i>
+            <span class="name">Rename</span>
+        </div>
 
-            <div v-if="nodes.length"
-                 class="option"
-                 @click="moveToClipboard('move')">
-                <i class="fas fa-fw fa-cut"></i>
-                <span class="name">Cut</span>
-            </div>
+        <div v-if="nodes.length && activeTab === 'home'"
+             class="option"
+             @click="moveToClipboard('copy')">
+            <i class="fas fa-fw fa-copy"></i>
+            <span class="name">Copy</span>
+        </div>
 
-            <div v-if="clipboard.nodes.length && activeTab === 'home'"
-                 class="option"
-                 @click="execClipboardAction()">
-                <i class="fas fa-fw fa-paste"></i>
-                <span class="name">Paste</span>
-            </div>
+        <div v-if="nodes.length && activeTab === 'home'"
+             class="option"
+             @click="moveToClipboard('move')">
+            <i class="fas fa-fw fa-cut"></i>
+            <span class="name">Cut</span>
+        </div>
 
-            <div v-if="nodes.length === 1 && type === 'files'"
-                 class="option"
-                 @click="share()">
-                <i class="fas fa-fw fa-share-alt"></i>
-                <span class="name">Share</span>
-            </div>
+        <div v-if="clipboard.nodes.length && activeTab === 'home'"
+             class="option"
+             @click="execClipboardAction">
+            <i class="fas fa-fw fa-paste"></i>
+            <span class="name">Paste</span>
+        </div>
 
-            <div v-if="type === 'dir'" class="option sub">
-                <i class="fas fa-fw fa-palette"></i>
-                <span class="name">Change color</span>
-                <color-chooser class="sub-menu" @change="setColor"/>
-            </div>
+        <div v-if="nodes.length && activeTab === 'home'"
+             class="option"
+             @click="zip">
+            <i class="fas fa-fw fa-file-archive"></i>
+            <span class="name">Zip it</span>
+        </div>
+
+        <div v-if="nodes.length === 1"
+             class="option"
+             @click="share">
+            <i class="fas fa-fw fa-share-alt"></i>
+            <span class="name">Share</span>
+        </div>
+
+        <div v-if="type === 'dir'" class="option sub">
+            <i class="fas fa-fw fa-palette"></i>
+            <span class="name">Change color</span>
+            <color-chooser class="sub-menu" @change="setColor"/>
         </div>
 
     </div>
@@ -101,24 +119,23 @@
 
         computed: {
 
-            /**
-             * Returns a state.
-             * 0: None or some are marked
-             * 1: All nodes are marked
-             */
             marked() {
-
                 if (!this.nodes.length) {
-                    return;
+                    return 0;
                 }
 
-                for (let i = 0, a = this.nodes.length, n; n = this.nodes[i], i < a; i++) {
-                    if (!n.marked) {
-                        return 0;
-                    }
+                const amount = this.nodes.filter(v => v.marked).length;
+                if (amount === this.nodes.length) {
+                    return 2;
+                } else if (amount) {
+                    return 1;
+                } else {
+                    return 0;
                 }
+            },
 
-                return 1;
+            deleted() {
+                return this.nodes.find(v => v.bin) ? 1 : 0;
             },
 
             activeTab() {
@@ -142,13 +159,22 @@
                     }
                 }
             });
+
+            requestAnimationFrame(() => {
+                const {menu} = this.$refs;
+                const bcr = menu.getBoundingClientRect();
+                if (bcr.bottom > window.innerHeight) {
+                    menu.classList.add('top');
+                } else {
+                    menu.classList.remove('top');
+                }
+            });
         },
 
         mounted() {
 
-            // Close via escape key
-            this.utils.on(window, 'keyup', e => e.key === 'Escape' && this.$emit('hide'));
-            this.utils.on(window, 'resize', () => this.$emit('hide'));
+            // Close on resize and keypress
+            this.utils.on(window, ['resize', 'keydown', 'wheel', 'blur'], () => this.$emit('hide'));
 
             // Function to check, if menu is open, if the user has clicked
             // outside of the menu. Only active is menu is visible.
@@ -198,13 +224,37 @@
 
         methods: {
 
+            jump() {
+                const {nodes} = this.$store.state;
+                const parentId = this.nodes[0].parent;
+
+                for (let i = 0, n = nodes.length; i < n; i++) {
+                    if (nodes[i].id === parentId) {
+                        this.$store.commit('location/update', nodes[i]);
+                        break;
+                    }
+                }
+
+                this.$emit('hide');
+            },
+
+            zip(){
+                this.$store.dispatch('nodes/zip', {nodes: this.nodes});
+                this.$emit('hide');
+            },
+
             del() {
-                this.$store.dispatch('nodes/delete', this.nodes);
+                this.$store.dispatch('nodes/delete', {nodes: this.nodes});
+                this.$emit('hide');
+            },
+
+            restore() {
+                this.$store.dispatch('nodes/restore', this.nodes);
                 this.$emit('hide');
             },
 
             star() {
-                this.$store.dispatch(`nodes/${this.marked ? 'remove' : 'add'}Mark`, this.nodes);
+                this.$store.dispatch(`nodes/${this.marked === 2 ? 'remove' : 'add'}Mark`, this.nodes);
                 this.$emit('hide');
             },
 
@@ -282,14 +332,13 @@
     .menu {
         @include flex(column);
         position: fixed;
-        transform: translateY(-0.1em);
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.3s;
         background: white;
         padding: 0.4em 0.25em;
-        box-shadow: 0 3px 15px 0 rgba(0, 0, 0, 0.1);
-        border-radius: 0.25em;
+        box-shadow: 0 3px 15px 0 rgba(0, 0, 0, 0.2);
+        border-radius: 0.5em;
 
         &:empty {
             display: none;
@@ -297,8 +346,11 @@
 
         &.open {
             opacity: 1;
-            transform: none;
             pointer-events: all;
+        }
+
+        &.top {
+            transform: translateY(-100%);
         }
 
         .option {
@@ -311,7 +363,7 @@
             margin: 0.25em 0;
 
             i {
-                font-size: 1.3em;
+                font-size: 1.15em;
             }
 
             .name {

@@ -88,14 +88,17 @@ export const search = {
                 const {nodes} = rootState;
                 for (let i = 0, a = nodes.length, n; n = nodes[i], i < a; i++) {
 
-                    // Check type
-                    if (type !== 'all' && n.type !== type) {
+                    // Check type, if root or if in trash
+                    if ((type !== 'all' && n.type !== type) || n.parent === 'root' || n._subBin) {
                         continue;
                     }
 
                     // Check is filter
-                    if (is && is.length && !is.includes(n.name.replace(/.*\./, ''))) {
-                        continue;
+                    if (is && is.length) {
+                        const extension = n.name.replace(/.*\./, '');
+                        if (extension === n.name || !is.includes(extension)) {
+                            continue;
+                        }
                     }
 
                     // Check size filter

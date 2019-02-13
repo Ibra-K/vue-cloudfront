@@ -5,10 +5,10 @@ import Vuex from 'vuex';
 import config from '../../../config/config.json';
 
 // Server-related nodes
-import {nodes}  from './app/nodes';
-import {auth}   from './app/auth';
-import {events} from './app/events';
-import {data}   from './app/data';
+import {nodes} from './app/nodes';
+import {auth}  from './app/auth';
+import {stats} from './app/stats';
+import {data}  from './app/data';
 
 // Virtual modules act only as visual helpers / representation
 import {location}    from './virtual/location';
@@ -32,7 +32,7 @@ export default new Vuex.Store({
         auth,
 
         // Holds user related content
-        events,
+        stats,
 
         // Responsible for uploading / downloading data
         data,
@@ -76,6 +76,19 @@ export default new Vuex.Store({
         requestsActive: 0
     },
 
+    getters: {
+
+        /**
+         * Returns a function which takes a node which returns
+         * a url to this specific file using the current APIKey.
+         *
+         * @returns {function(*): string}
+         */
+        buildStaticUrl(state) {
+            return node => `${config.apiEndPoint}/s/${encodeURIComponent(node.name)}?id=${node.id}&apikey=${state.auth.apikey}`;
+        }
+    },
+
     mutations: {
 
         setActivePopup(state, popup) {
@@ -97,17 +110,19 @@ export default new Vuex.Store({
          * Request proxy
          *
          * @param state
+         * @param silent
+         * @param raw
          * @param route API endpoint
          * @param body JSON Bddy
          * @returns {Promise<Response | Never>}
          */
-        async fetch({state}, {route, body}) {
+        async fetch({state}, {silent = false, raw = false, route, body}) {
 
             if (!navigator.onLine) {
                 return Promise.reject('User is currently offline');
             }
 
-            state.requestsActive++;
+            !silent && state.requestsActive++;
             return fetch(`${config.apiEndPoint}/${route}`, {
                 method: 'POST',
                 headers: {
@@ -115,17 +130,23 @@ export default new Vuex.Store({
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify(body)
-            }).then(async v => {
+            }).then(async response => {
 
-                if (!v.ok) {
+                if (raw) {
+                    return {
+                        response, done: () => state.requestsActive--
+                    };
+                }
+
+                if (!response.ok) {
 
                     /* eslint-disable no-console */
-                    console.warn(v);
+                    console.warn(response);
                     throw 'Fetch failed';
                 }
 
-                const {error, data} = await v.json();
-                state.requestsActive--;
+                const {error, data} = await response.json();
+                !silent && state.requestsActive--;
 
                 if (error) {
                     throw error;

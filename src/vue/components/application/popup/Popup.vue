@@ -10,7 +10,9 @@
             </div>
 
             <!-- Contains content of popovers page -->
-            <slot></slot>
+            <div class="content">
+                <slot></slot>
+            </div>
         </div>
 
     </section>
@@ -49,7 +51,7 @@
         @include flex(row, center, center);
         pointer-events: none;
         opacity: 0;
-        transform: translateY(-1em);
+        transform: translateY(-1em) rotateX(10deg);
         transition: all 0.3s;
         background: rgba($palette-deep-blue, 0.05);
         z-index: 10;
@@ -66,9 +68,13 @@
         background: white;
         box-shadow: 0 8px 25px 0 rgba(black, 0.08), 0 0 5px 0 rgba(black, 0.02);
         padding: 1.25em 2em 2em;
-        border-radius: 0.15em;
+        border-radius: 0.25em;
         max-height: 100%;
         max-width: 52em;
+
+        .content {
+            overflow: auto;
+        }
 
         .header {
             @include flex(row);
@@ -85,9 +91,10 @@
                 color: $palette-decent-blue;
                 transition: all 0.3s;
                 cursor: pointer;
+                font-size: 0.95em;
 
                 &:hover {
-                    color: $palette-tomatoe-red;
+                    color: $palette-deep-blue;
                 }
             }
         }

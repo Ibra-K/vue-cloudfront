@@ -7,17 +7,17 @@
 
             <div class="name" @click="sort('name')">
                 <span>Name</span>
-                <i :class="`sort fas fa-fw fa-caret-${sortDirs.name ? 'down' : 'up'}`"></i>
+                <i :class="`sort fas fa-fw fa-angle-${sortProps.name ? 'down' : 'up'}`"></i>
             </div>
 
             <div class="detail" @click="sort('lastModified')">
                 <span>Last modified</span>
-                <i :class="`sort fas fa-fw fa-caret-${sortDirs.lastModified ? 'down' : 'up'}`"></i>
+                <i :class="`sort fas fa-fw fa-angle-${sortProps.lastModified ? 'down' : 'up'}`"></i>
             </div>
 
             <div class="detail" @click="sort('size')">
                 <span>Size</span>
-                <i :class="`sort fas fa-fw fa-caret-${sortDirs.size ? 'down' : 'up'}`"></i>
+                <i :class="`sort fas fa-fw fa-angle-${sortProps.size ? 'down' : 'up'}`"></i>
             </div>
         </div>
 
@@ -27,8 +27,8 @@
 
             <!-- Folders -->
             <div v-double-tap="() => updateLocation(node)"
-                 v-for="node of croppedNodes.dir"
-                 :class="{selected: node.selected, dir: 1, cutted: node.cutted}"
+                 v-for="node of sortedNodes.dir"
+                 :class="{selected: node._selected, dir: 1, cutted: node._cutted}"
                  :data-hash="node.id"
                  @touchend="select($event, node)"
                  @click.left="select($event, node)"
@@ -37,9 +37,11 @@
                 <i :style="{color: node.color}" class="fas fa-fw fa-folder"></i>
 
                 <div class="name" spellcheck="false">
-                    <span v-select-all="node.editable"
-                          :contenteditable="node.editable"
+
+                    <span v-content-editable="node._editable"
+                          v-select-all="node._editable"
                           @keydown.enter.prevent="renameNode($event, node)">{{ node.name }}</span>
+
                     <i :class="{'fas fa-fw fa-bookmark bookmark': 1, visible: node.marked}" :style="{color: node.color}"></i>
                 </div>
 
@@ -49,8 +51,8 @@
 
             <!-- Files -->
             <div v-double-tap="() => $store.commit('filepreview/show', {nodes: nodes.file, index})"
-                 v-for="(node, index) of croppedNodes.file"
-                 :class="{selected: node.selected, file: 1, cutted: node.cutted}"
+                 v-for="(node, index) of sortedNodes.file"
+                 :class="{selected: node._selected, file: 1, cutted: node._cutted}"
                  :data-hash="node.id"
                  @touchend="select($event, node)"
                  @click.left="select($event, node)"
@@ -58,9 +60,11 @@
 
                 <i class="fas fa-fw fa-file"></i>
                 <div class="name" spellcheck="false">
-                    <span v-select-all="node.editable"
-                          :contenteditable="node.editable"
+
+                    <span v-content-editable="node._editable"
+                          v-select-all="node._editable"
                           @keydown.enter.prevent="renameNode($event, node)">{{ node.name }}</span>
+
                     <i :class="{'fas fa-fw fa-bookmark bookmark': 1, visible: node.marked}" :style="{color: node.color}"></i>
                 </div>
 
@@ -75,7 +79,12 @@
 <script>
 
     // Config stuff
-    import {visibleNodesLimit} from '../../../../../../../config/config';
+    import {visibleNodesChunkSize} from '../../../../../../../config/config';
+
+    // Selectable plugin
+    import Selectable from '../plugins/selectable';
+
+    import shared from './shared';
 
     export default {
         props: {
@@ -87,9 +96,11 @@
 
         data() {
             return {
-                fileLimit: visibleNodesLimit,
-                dirLimit: visibleNodesLimit,
-                sortDirs: {
+                fileLimit: visibleNodesChunkSize,
+                dirLimit: visibleNodesChunkSize,
+
+                sortProp: null,
+                sortProps: {
                     name: false,
                     lastModified: false,
                     size: false
@@ -98,141 +109,53 @@
         },
 
         computed: {
-            croppedNodes() {
-                const {fileLimit, dirLimit} = this;
-                return {
-                    file: this.nodes.file.slice(0, fileLimit),
-                    dir: this.nodes.dir.slice(0, dirLimit)
-                };
+            ...shared.computed,
+
+            sortedNodes() {
+                const nodes = this.croppedNodes;
+
+                const {sortProp} = this;
+                if (sortProp) {
+
+                    /**
+                     * Values which are used to toggle
+                     * each sorting type individually.
+                     */
+                    const ra = this.sortProps[sortProp] ? -1 : 1;
+                    const rb = ra * -1;
+
+                    // Find correct sorting function
+                    const sortFn = (a, b) => a[sortProp] > b[sortProp] ? ra : rb;
+
+                    // Sort pre-calulated nodes and re-render everything
+                    nodes.file.sort(sortFn);
+                    nodes.dir.sort(sortFn);
+                }
+
+                return nodes;
             }
         },
 
         watch: {
-            nodes(newValue, oldValue) {
-
-                // Mostly props get's changed. Update only if array lengths are changing
-                if (newValue.dir.length !== oldValue.dir.length || newValue.file.length !== oldValue.file.length) {
-
-                    this.dirLimit = visibleNodesLimit;
-                    this.fileLimit = visibleNodesLimit;
-                    this.riseVisibleArea();
-                }
-            }
+            ...shared.watch
         },
 
         mounted() {
             this.riseVisibleArea();
         },
 
+        updated() {
+            Selectable.resolveSelectables();
+        },
+
         methods: {
-            scroll({target}) {
-                if (target.scrollHeight - (target.scrollTop + target.offsetHeight) < 25) {
-                    this.increaseVisibleArea();
-                }
-            },
-
-            increaseVisibleArea() {
-                if (this.dirLimit < this.nodes.dir.length) {
-                    this.dirLimit += visibleNodesLimit;
-                    return true;
-                }
-
-                if (this.fileLimit < this.nodes.file.length) {
-                    this.fileLimit += visibleNodesLimit;
-                    return true;
-                }
-
-                return false;
-            },
-
-            riseVisibleArea() {
-                const listEl = this.$refs.list;
-
-                const check = () => {
-                    requestAnimationFrame(() => {
-                        if (listEl.scrollHeight === listEl.offsetHeight && this.increaseVisibleArea()) {
-                            check();
-                        }
-                    });
-                };
-
-                check();
-            },
-
-            updateLocation(node) {
-                this.$store.commit('setActiveTab', 'home');
-                this.$store.commit('location/update', node);
-            },
-
-            renameNode(evt, node) {
-                this.$store.commit('editable/clear');
-                this.$store.dispatch('nodes/rename', {
-                    node,
-                    newName: evt.target.innerHTML
-                });
-            },
-
-            select(evt, node) {
-                const state = this.$store.state;
-
-                /**
-                 * Clear selection if
-                 *  - User hasn't pressed the ctrlKey and used NOT right click (which would open the menu)
-                 *  - User used right click AND the node isn't already selected
-                 */
-                if ((!evt.ctrlKey && evt.button !== 2) ||
-                    (evt.button === 2 && !state.selection.includes(node))) {
-                    this.$store.commit('selection/clear');
-                } else if (evt.ctrlKey && evt.shiftKey) {
-
-                    // Select all nodes from 0 or an already selected to the target node
-                    const selection = state.selection;
-                    const nodes = this.nodes.dir.concat(this.nodes.file);
-
-                    // Find start and end point
-                    const [start, end] = [
-                        selection.length ? nodes.indexOf(selection[0]) : 0,
-                        nodes.indexOf(node)
-                    ].sort((a, b) => a - b);
-
-                    // Append rage-nodes to selection
-                    this.$store.commit('selection/append', nodes.slice(start, end + 1));
-                    return;
-                }
-
-                // Toggle
-                const action = evt.button !== 2 && state.selection.includes(node) ? 'remove' : 'append';
-                this.$store.commit(`selection/${action}`, [node]);
-            },
+            ...shared.methods,
 
             sort(type) {
 
-                /**
-                 * Values which are used to toggle
-                 * each sorting type individually.
-                 */
-                const ra = this.sortDirs[type] ? -1 : 1;
-                const rb = this.sortDirs[type] ? 1 : -1;
-
-                // Find correct sorting function
-                const sortFn = (() => {
-                    switch (type) {
-                        case 'name':
-                            return (a, b) => a.name > b.name ? ra : rb;
-                        case 'lastModified':
-                            return (a, b) => a.lastModified > b.lastModified ? ra : rb;
-                        case 'size':
-                            return (a, b) => a.size > b.size ? ra : rb;
-                    }
-                })();
-
-                // Sort pre-calulated nodes and re-render everything
-                this.nodes.file.sort(sortFn);
-                this.nodes.dir.sort(sortFn);
-                this.$forceUpdate();
-
                 // Toggle sort-direction to descending / ascending
-                this.sortDirs[type] = !this.sortDirs[type];
+                this.sortProps[type] = !this.sortProps[type];
+                this.sortProp = type;
             }
         }
     };
@@ -250,7 +173,7 @@
         height: 0;
         flex-grow: 1;
         overflow: auto;
-        padding-bottom: 0.5em;
+        padding-bottom: 2.5em;
     }
 
     .dir,
@@ -258,11 +181,15 @@
     .header {
         @include flex(row, center);
         user-select: none;
-        padding: 0.45em 0 0.25em;
-        border-bottom: 1px solid rgba($palette-deep-blue, 0.05);
+        padding: 0.3em 0.5em;
         transition: all 0.3s;
         cursor: pointer;
         font-size: 0.8em;
+        border-left: 0.15em solid transparent;
+
+        &:nth-child(even) {
+            background: rgba($palette-deep-blue, 0.02);
+        }
 
         i {
             color: $palette-deep-blue;
@@ -272,9 +199,9 @@
         }
 
         &.selected {
+            border-color: rgba($palette-cloud-blue, 0.75);
 
-            .name,
-            .detail,
+            span,
             i {
                 color: $palette-cloud-blue;
             }
@@ -302,7 +229,7 @@
             text-overflow: ellipsis;
 
             span[contenteditable=true] {
-                border-color: $palette-deep-purple;
+                border-color: $palette-theme-primary;
                 cursor: text;
                 outline: none;
             }
@@ -326,10 +253,6 @@
             width: 60%;
             opacity: 0.8;
         }
-
-        &:nth-last-child(1) {
-            border-bottom: none;
-        }
     }
 
     .header {
@@ -341,11 +264,15 @@
             @include flex(row, center);
             font-weight: 600;
 
+            i {
+                margin: 0;
+            }
+
             &:hover {
-                color: $palette-deep-purple;
+                color: $palette-theme-primary;
 
                 .sort {
-                    color: $palette-deep-purple;
+                    color: $palette-theme-primary;
                 }
             }
 

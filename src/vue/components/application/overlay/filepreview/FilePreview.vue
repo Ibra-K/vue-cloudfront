@@ -13,18 +13,21 @@
             <!-- Actual preview -->
             <div v-if="currentNode" class="file">
 
-                <!-- Previews -->
-                <image-preview v-if="currentNode.name.match(/\.(png|jpg|jpeg|svg|gif|bmp|webp|jpeg2000|ico)$/i)" :url="url"/>
-                <video-preview v-else-if="currentNode.name.match(/\.(webm|mp4|wav|flac)$/i)" :url="url"/>
-                <audio-preview v-else-if="currentNode.name.match(/\.(mp3|wav|ogg)$/i)" :url="url"/>
-                <pdf-preview v-else-if="currentNode.name.match(/\.pdf$/i)" :url="url"/>
-                <font-preview v-else-if="currentNode.name.match(/\.(ttf|otf|woff)$/i)" :url="url"/>
+                <!-- Preview -->
+                <embed-file-preview :node="currentNode">
 
-                <!-- Message if no preview is available -->
-                <div v-else class="no-preview">
-                    Preview not available for
-                    <span>{{ currentNode.name }}</span>.
-                </div>
+                    <!-- Fallback if no preview is available -->
+                    <div class="no-preview">
+                        Preview not available for
+                        <span>{{ currentNode.name }}</span>.
+
+                        <button @click="$store.dispatch('data/download', {node: currentNode})">
+                            <i class="fas fa-cloud-download-alt"></i>
+                            <span>Download instead</span>
+                        </button>
+                    </div>
+
+                </embed-file-preview>
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 384 512"
@@ -45,18 +48,9 @@
 
 <script>
 
-    // Config
-    import config from '../../../../../../config/config.json';
-
     // Components
-    import Overlay from '../Overlay';
-
-    // Preview components
-    import FontPreview  from './modules/FontPreview';
-    import PDFPreview   from './modules/PDFPreview';
-    import AudioPreview from './modules/AudioPreview';
-    import VideoPreview from './modules/VideoPreview';
-    import ImagePreview from './modules/ImagePreview';
+    import Overlay          from '../Overlay';
+    import EmbedFilePreview from './EmbedFilePreview';
 
     // Vuex stuff
     import {mapState} from 'vuex';
@@ -64,11 +58,7 @@
     export default {
         components: {
             Overlay,
-            FontPreview,
-            ImagePreview,
-            VideoPreview,
-            AudioPreview,
-            'pdf-preview': PDFPreview
+            EmbedFilePreview
         },
 
         data() {
@@ -80,13 +70,7 @@
 
             currentNode() {
                 const {index, nodes} = this.filepreview;
-
                 return nodes[index];
-            },
-
-            url() {
-                const name = encodeURIComponent(this.currentNode.name);
-                return `${config.apiEndPoint}/static/${name}?id=${this.currentNode.id}&apikey=${this.$store.state.auth.apikey}`;
             }
         },
 
@@ -132,8 +116,9 @@
     .preview {
         @include flex(row, stretch, space-between);
         flex-grow: 1;
+        min-height: 0;
 
-        i {
+        > i {
             color: $palette-deep-blue;
             cursor: pointer;
             transition: all 0.3s;
@@ -143,7 +128,7 @@
             margin: auto 0;
 
             &:hover {
-                color: $palette-bright-purple;
+                color: $palette-theme-secondary;
                 opacity: 1;
             }
 
@@ -160,13 +145,18 @@
 
         .file {
             position: relative;
-            @include flex(row, center, center);
+            @include flex(column, center, center);
             flex-grow: 1;
             margin: 2em;
+            min-height: 0;
+
+            .embed-file-preview {
+                min-width: 40%;
+            }
 
             .download-btn {
                 position: absolute;
-                @include position(auto, 0, 0, auto);
+                @include position(auto, 0, -0.5em, auto);
                 @include size(30px);
                 cursor: pointer;
                 fill: $palette-snow-white;
@@ -186,9 +176,29 @@
                 text-align: center;
                 width: 100%;
 
-                span {
-                    font-style: italic;
+                > span {
                     font-weight: 600;
+                }
+
+                > button {
+                    @include flex(row, center, center);
+                    margin: 1em auto 0;
+                    background: $palette-deep-blue;
+                    color: $palette-snow-white;
+                    transition: all 0.3s;
+                    padding: 0.5em 1em;
+                    border-radius: 0.15em;
+
+                    i {
+                        font-size: 1em;
+                        margin-right: 0.55em;
+                        color: $palette-snow-white;
+                    }
+
+
+                    &:hover {
+                        background: lighten($palette-deep-blue, 5);
+                    }
                 }
             }
         }

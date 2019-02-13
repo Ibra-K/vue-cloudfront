@@ -21,7 +21,7 @@
     import config from '../../../../../../../config/config.json';
 
     // Components
-    import ColorPicker from '../../../../../ui/ColorPicker';
+    import ColorPicker from '../../../../../ui/input/ColorPicker';
 
     export default {
 
@@ -31,7 +31,7 @@
 
         data() {
             return {
-                colors: config.colors
+                colors: config.predefinedColors
             };
         },
 

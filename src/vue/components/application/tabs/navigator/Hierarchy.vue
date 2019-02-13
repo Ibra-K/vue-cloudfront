@@ -2,7 +2,7 @@
     <section class="hierarchy">
 
         <!-- Default display of the current folder hierarchy -->
-        <div v-if="!searchResult && !markedNodes" class="nodes">
+        <div v-if="!searchResult && !simpleCount" class="nodes">
             <div v-for="(node, index) of nodes"
                  :data-hash="node.id"
                  class="node">
@@ -24,19 +24,30 @@
             <span v-if="!searchResult.file && !searchResult.dir">Nothing found</span>
         </div>
 
-        <!-- Same as search info, but for marked nodes -->
-        <div v-if="markedNodes && !searchResult" class="amount-info">
-            <b v-if="markedNodes.file">{{ markedNodes.file }} file{{ markedNodes.file === 1 ? '' : 's' }}</b>
-            <span v-if="markedNodes.file && markedNodes.dir"> and </span>
-            <b v-if="markedNodes.dir">{{ markedNodes.dir }} folder{{ markedNodes.dir === 1 ? '' : 's' }}</b>
-            <span v-if="markedNodes.file || markedNodes.dir"> marked</span>
-            <span v-if="!markedNodes.file && !markedNodes.dir">Nothing marked</span>
+        <!-- Same as search info, but for marked nodes and nodes which are currently in the bin -->
+        <div v-if="simpleCount && !searchResult" class="amount-info">
+            <b v-if="simpleCount.file">{{ simpleCount.file }} file{{ simpleCount.file === 1 ? '' : 's' }} </b>
+            <span v-if="simpleCount.file && simpleCount.dir"> and </span>
+            <b v-if="simpleCount.dir">{{ simpleCount.dir }} folder{{ simpleCount.dir === 1 ? '' : 's' }} </b>
+
+            <span v-if="simpleCount.file || simpleCount.dir">
+                <span v-if="activeTab === 'bin'">moved to the bin</span>
+                <span v-else-if="activeTab === 'marked'">marked</span>
+            </span>
+
+            <span v-if="!simpleCount.file && !simpleCount.dir">
+                <span v-if="activeTab === 'bin'">Nothing deleted yet</span>
+                <span v-else-if="activeTab === 'marked'">Nothing marked</span>
+            </span>
         </div>
 
     </section>
 </template>
 
 <script>
+
+    // Vuex stuff
+    import {mapState} from 'vuex';
 
     export default {
 
@@ -45,6 +56,7 @@
         },
 
         computed: {
+            ...mapState(['activeTab']),
 
             nodes() {
                 return this.$store.getters['location/getHierarchy'].map(v => {
@@ -78,9 +90,9 @@
                 return res;
             },
 
-            markedNodes() {
+            simpleCount() {
 
-                if (this.$store.state.activeTab !== 'marked') {
+                if (!['marked', 'bin'].includes(this.activeTab)) {
                     return null;
                 }
 
@@ -99,7 +111,6 @@
                 this.$store.commit('location/update', node);
             }
         }
-
     };
 
 </script>
@@ -138,7 +149,7 @@
                 padding: 0.35em 0.75em 0.39em;
                 border-radius: 50em;
                 background: white;
-                box-shadow: 0 1px 5px 0 darken(white, 5);
+                box-shadow: 0 1px 5px 0 rgba($palette-deep-blue, 0.075);
                 max-width: 10em;
                 white-space: nowrap;
                 overflow: hidden;
@@ -153,12 +164,13 @@
             i {
                 color: rgba($palette-deep-blue, 0.25);
                 opacity: 0.5;
-                margin: 0 0.5em;
+                margin: 0 0.25em;
+                font-size: 1.2em;
             }
 
             &:last-child .name {
                 background: #{'rgb(var(--color))'};
-                box-shadow: 0 1px 10px 0 #{'rgba(var(--color), 0.5)'};
+                box-shadow: 0 1px 5px 0 #{'rgba(var(--color), 0.5)'};
                 color: white;
             }
 
@@ -175,6 +187,17 @@
         color: $palette-deep-blue;
         font-size: 0.9em;
         white-space: pre-wrap;
+
+        @include animate('0.3s') {
+            from {
+                opacity: 0;
+                transform: translateY(-0.3em);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
     }
 
     @include mobile {

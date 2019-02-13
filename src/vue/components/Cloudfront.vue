@@ -9,9 +9,12 @@
             <info-bar/>
 
             <!-- Tabs, dynamic, getting changed via menu tabs -->
-            <navigator v-show="activeTab === 'marked' || activeTab === 'home'"/>
+            <navigator v-show="['marked', 'home', 'bin'].includes(activeTab)"/>
             <history v-show="activeTab === 'history'"/>
             <settings v-show="activeTab === 'settings'"/>
+
+            <!-- Upload bar - shows the current upload progress of files -->
+            <upload-toasts/>
         </div>
 
         <!-- Overlays -->
@@ -38,14 +41,15 @@
     import History   from './application/tabs/History';
     import Settings  from './application/tabs/Settings';
 
-    import MenuBar from './application/MenuBar';
-    import ToolTip from '../ui/ToolTip';
-    import InfoBar from './InfoBar';
+    import ToolTip      from '../ui/specific/ToolTip';
+    import MenuBar      from './application/MenuBar';
+    import InfoBar      from './InfoBar';
+    import UploadToasts from './UploadToasts';
 
     // Popovers
-    import KeyboardShortcuts from './application/popups/KeyboardShortcuts';
-    import SearchFilters     from './application/popups/SearchFilters';
-    import ShareViaLink      from './application/popups/ShareViaLink';
+    import KeyboardShortcuts from './application/popup/KeyboardShortcuts';
+    import SearchFilters     from './application/popup/SearchFilters';
+    import ShareViaLink      from './application/popup/ShareViaLink';
 
     // Overlays
     import LoadingScreen  from './application/overlay/LoadingScreen';
@@ -59,7 +63,9 @@
     export default {
 
         components: {
+            InfoBar,
             MenuBar,
+            UploadToasts,
 
             // Tabs
             Navigator,
@@ -73,7 +79,6 @@
             LoadingScreen,
             UploadArea,
             ToolTip,
-            InfoBar,
             FilePreview,
 
             // Authentication
@@ -95,7 +100,7 @@
 <style lang="scss" scoped>
 
     .index {
-        font-family: $font-family-open-sans;
+        font-family: $font-family;
         user-select: none;
         @include flex(row);
         overflow: hidden;

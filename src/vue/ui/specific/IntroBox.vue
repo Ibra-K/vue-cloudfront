@@ -1,8 +1,8 @@
 <template>
-    <div v-if="events.introBoxes.includes(id)"
+    <div v-if="stats.introBoxes.includes(id)"
          ref="introBox"
          class="intro-box"
-         @click="toggle()">
+         @click="toggle">
 
         <!-- Bouncing question mark -->
         <svg class="question-mark"
@@ -38,9 +38,9 @@
 
                     <div class="actions">
                         <span class="skip"
-                              @click="$store.dispatch('events/removeAllIntroBoxes')">Skip all</span>
+                              @click="closeAll">Skip all</span>
 
-                        <button @click="close()">
+                        <button @click="close">
                             <span>Okay</span>
                             <i class="fas fa-fw fa-check"></i>
                         </button>
@@ -79,12 +79,13 @@
 
         data() {
             return {
-                visible: false
+                visible: false,
+                closeEventListenerProps: []
             };
         },
 
         computed: {
-            ...mapState(['events'])
+            ...mapState(['stats'])
         },
 
         methods: {
@@ -102,11 +103,30 @@
 
                     // Show introbox
                     this.visible = true;
+                    this.visible = true;
+                    this.closeEventListenerProps = this.utils.on(window, 'mousedown', e => {
+
+                        // Detect click outside of the intro box
+                        if (!this.utils.eventPath(e).includes(introBox)) {
+                            this.visible = false;
+                            this.utils.off(...this.closeEventListenerProps);
+                        }
+                    });
                 }
             },
 
             close() {
-                this.$store.dispatch('events/removeIntroBox', {id: this.id});
+                this.$store.dispatch('stats/change', stats => {
+                    stats.introBoxes = stats.introBoxes.filter(v => v !== this.id);
+                    return stats;
+                });
+            },
+
+            closeAll() {
+                this.$store.dispatch('stats/change', stats => {
+                    stats.introBoxes = [];
+                    return stats;
+                });
             }
         }
     };
@@ -128,7 +148,7 @@
         margin: auto;
         overflow: visible;
         opacity: 0.9;
-        fill: $palette-deep-purple;
+        fill: $palette-theme-primary;
         cursor: pointer;
 
         @include animate('1.5s ease-in-out infinite') {
@@ -174,13 +194,13 @@
 
     .inner-circle {
         @include size(16px);
-        border: 2px solid $palette-bright-purple;
+        border: 2px solid $palette-theme-secondary;
         animation-delay: 0.25s;
     }
 
     .outer-circle {
         @include size(20px);
-        border: 2px solid $palette-deep-purple;
+        border: 2px solid $palette-theme-primary;
     }
 
     .introduction {
@@ -207,12 +227,12 @@
             @include size(0);
             margin: auto;
             border: 10px solid transparent;
-            border-bottom-color: $palette-deep-purple;
+            border-bottom-color: $palette-theme-primary;
         }
 
         .header {
             position: relative;
-            background: $palette-deep-purple;
+            background: $palette-theme-primary;
             padding: 0.2em 0.75em;
             color: #fff;
             border-radius: 0.2em 0.2em 0 0;
@@ -233,7 +253,7 @@
                 transform: rotate(30deg);
                 margin: auto;
                 height: 150%;
-                fill: $palette-bright-purple;
+                fill: $palette-theme-secondary;
             }
         }
 
@@ -263,7 +283,7 @@
                     @include font(600, 0.7em);
 
                     &:hover {
-                        background: $palette-deep-purple;
+                        background: $palette-theme-primary;
                         color: white;
                     }
 
@@ -282,7 +302,7 @@
                     transition: all 0.3s;
 
                     &:hover {
-                        color: $palette-deep-purple;
+                        color: $palette-theme-primary;
                     }
                 }
             }

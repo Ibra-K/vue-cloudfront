@@ -4,7 +4,7 @@
         <template slot="header">
             <i v-tooltip="'Clear history'"
                class="fas fa-fw fa-trash"
-               @click="clearActions()"></i>
+               @click="clearActions"></i>
         </template>
 
         <template slot="content">
@@ -23,8 +23,6 @@
                     <span>Performed</span>
                     <i :class="`fas fa-fw fa-caret-${sortDirs.timestamp ? 'down' : 'up'}`"></i>
                 </div>
-
-                <span class="timestamp">Timestamp</span>
             </div>
 
             <!-- Actual list of actions -->
@@ -46,7 +44,6 @@
                     </span>
 
                     <span class="performed">{{ (timeReference - action.timestamp) | readableTimeStampDiff }}</span>
-                    <span class="timestamp">{{ action.timestamp | readableTimestamp }}</span>
                 </div>
             </div>
         </template>
@@ -118,7 +115,11 @@
 
             // Each action / mutation gets a unique color
             const colorMap = {
-                'Update': '#66BB6A',
+                'Update': '#C0CA33',
+                'Put': '#8BC34A',
+                'Create Folders': '#4CAF50',
+                'Restore': '#86ad2c',
+                'Zip': '#dc812e',
                 'Delete': '#EF5350',
                 'Add Mark': '#EC407A',
                 'Remove Mark': '#AB47BC',
@@ -132,6 +133,10 @@
             // Each action / mutation also gets a fancy icon
             const iconMap = {
                 'Update': 'fas fa-fw fa-sync-alt',
+                'Restore': 'fas fa-fw fa-redo-alt',
+                'Put': 'fas fa-fw fa-cloud-upload-alt',
+                'Zip': 'fas fa-fw fa-file-archive',
+                'Create Folders': 'fas fa-fw fa-folder-open',
                 'Delete': 'fas fa-fw fa-trash-alt',
                 'Add Mark': 'fas fa-fw fa-bookmark',
                 'Remove Mark': 'far fa-fw fa-bookmark',
@@ -145,7 +150,19 @@
             // Map of functions which generate a description of each action the user perform
             const descriptionMap = {
                 'Update': () =>
-                    `Nodes updated.`,
+                    `Cloud updated.`,
+
+                'Put': payload =>
+                    `Uploaded ${pluralify(payload.nodes)}`,
+
+                'Zip': payload =>
+                    `Zip ${pluralify(payload.nodes)}`,
+
+                'Restore': payload =>
+                    `Restored ${pluralify(payload)} from bin`,
+
+                'Create Folders': payload =>
+                    `Created ${pluralify(payload.folders)}`,
 
                 'Delete': payload =>
                     `Deleted ${pluralify(payload)}.`,
@@ -186,6 +203,11 @@
                     .map(v => v[0].toUpperCase() + v.substr(1).toLowerCase())
                     .join(' ');
 
+                // Check if a correspondending description is available
+                if (!(name in descriptionMap)) {
+                    return;
+                }
+
                 // Push action
                 this.actions.splice(0, 0, {
                     name,
@@ -201,7 +223,7 @@
                      * Description, here is also a default value
                      * present but it shouldn't be used.
                      */
-                    description: (name in descriptionMap) && descriptionMap[name](payload) || 'No details available',
+                    description: descriptionMap[name](payload) || 'No details available',
 
                     // Timestamp when action was performed
                     timestamp: Date.now(),
@@ -274,7 +296,7 @@
     }
 
     .actions {
-        margin: 1em 0.5em 0 0.5em;
+        margin: 1em 0 0 0;
         overflow: auto;
     }
 
@@ -301,7 +323,6 @@
             @include flex(row, center);
             border-bottom: 2px solid rgba(black, 0.1);
             padding: 0.4em 0.75em;
-            border-radius: 0.15em;
             color: white;
             margin-right: auto;
             text-shadow: 1px 1px 0 rgba(black, 0.05);
@@ -322,7 +343,7 @@
 
         .description {
             @include flex(row, center);
-            width: 40%;
+            width: 60%;
             margin: 0 1em;
             overflow: hidden;
 
@@ -330,6 +351,7 @@
                 overflow: hidden;
                 white-space: nowrap;
                 text-overflow: ellipsis;
+                line-height: 1.2em;
             }
 
             .change-color {
@@ -342,7 +364,6 @@
             }
         }
 
-        .timestamp,
         .performed {
             opacity: 0.75;
             width: 20%;
@@ -357,7 +378,6 @@
 
         &.actions-header {
             position: relative;
-            font-size: 0.85em;
 
             .name {
                 color: $palette-deep-blue;
@@ -369,6 +389,7 @@
             .sort-container {
                 @include flex(row, center);
                 cursor: pointer;
+                font-size: 1.05em;
 
                 i {
                     font-size: inherit;
@@ -376,10 +397,10 @@
                 }
 
                 &:hover {
-                    color: $palette-deep-purple;
+                    color: $palette-theme-primary;
 
                     .sort {
-                        color: $palette-deep-purple;
+                        color: $palette-theme-primary;
                     }
                 }
             }
