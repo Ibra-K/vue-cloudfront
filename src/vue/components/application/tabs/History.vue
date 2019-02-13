@@ -297,7 +297,6 @@
 
     .actions {
         margin: 1em 0 0 0;
-        overflow: auto;
     }
 
     .action {

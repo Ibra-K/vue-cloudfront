@@ -75,17 +75,22 @@
 
         mounted() {
 
-            let start = false;
-            this.utils.on(window, ['touchend', 'touchcancel'], () => start = false);
+            let swipeX = false;
 
-            this.utils.on(window, 'touchstart', ({touches}) => {
-                start = touches && touches.length && touches[0].clientX < 50;
-            });
+            this.utils.on(window, ['touchend', 'touchcancel'], () => swipeX = null);
+            this.utils.on(window, 'touchstart', ({touches}) => swipeX = touches && touches.length && touches[0].clientX);
 
             this.utils.on(window, 'touchmove', ({touches}) => {
-                if (start && touches && touches.length && touches[0].clientX > 100) {
-                    this.open = true;
-                    start = false;
+                if (swipeX !== null && touches && touches.length && touches[0].clientX) {
+                    const diff = swipeX - touches[0].clientX;
+
+                    if (diff < -100) {
+                        this.open = false;
+                        swipeX = null;
+                    } else if (diff > 100) {
+                        this.open = true;
+                        swipeX = null;
+                    }
                 }
             });
         },
@@ -163,8 +168,9 @@
             position: fixed;
             height: 100%;
             z-index: 100;
-            transform: translateX(-120%);
-            transition: all 0.3s;
+            transform: translateX(100%);
+            transition: all ease 0.25s;
+            right: 0;
 
             &.open {
                 transform: none;

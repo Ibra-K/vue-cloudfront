@@ -238,7 +238,7 @@
                 this.$emit('hide');
             },
 
-            zip(){
+            zip() {
                 this.$store.dispatch('nodes/zip', {nodes: this.nodes});
                 this.$emit('hide');
             },
@@ -338,7 +338,7 @@
         background: white;
         padding: 0.4em 0.25em;
         box-shadow: 0 3px 15px 0 rgba(0, 0, 0, 0.2);
-        border-radius: 0.5em;
+        border-radius: 0.35em;
 
         &:empty {
             display: none;
@@ -432,14 +432,17 @@
 
 
     @include mobile {
-        .context-menu {
+        .menu {
             position: fixed;
-            @include position(0, 0, 0, 0);
-            @include flex(column, center, center);
-            pointer-events: none;
+            top: auto !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            border-radius: 0;
+            width: 100%;
 
-            .menu {
-                position: static;
+            &.top {
+                transform: none;
             }
         }
     }
