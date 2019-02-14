@@ -6,11 +6,10 @@
 
             <i class="fas fa-search"></i>
             <input v-strict-focus
-                   v-model="searchQuery"
                    placeholder="Search..."
                    spellcheck="false"
                    type="text"
-                   @input="updateSearch">
+                   @input="updateSearchQuery">
             <i :class="{delete: 1, 'fas fa-times': 1, visible: searchQuery.length}" @click="clear"></i>
 
             <!-- Show available filters -->
@@ -84,6 +83,11 @@
         },
 
         methods: {
+
+            updateSearchQuery(e) {
+                this.searchQuery = e.target.value;
+                this.updateSearch();
+            },
 
             updateSearch() {
                 this.$store.dispatch('search/update', this.searchQuery);

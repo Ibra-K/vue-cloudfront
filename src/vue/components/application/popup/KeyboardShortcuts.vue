@@ -381,7 +381,7 @@
         }
 
         .shortcut {
-            @include flex(row, center);
+            @include flex(row);
             padding: 0.25em 0;
 
             .keys {
