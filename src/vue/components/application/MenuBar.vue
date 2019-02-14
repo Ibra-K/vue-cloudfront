@@ -75,21 +75,21 @@
 
         mounted() {
 
-            let swipeX = false;
+            let swipeX = -1;
 
-            this.utils.on(window, ['touchend', 'touchcancel'], () => swipeX = null);
+            this.utils.on(window, ['touchend', 'touchcancel'], () => swipeX = -1);
             this.utils.on(window, 'touchstart', ({touches}) => swipeX = touches && touches.length && touches[0].clientX);
 
             this.utils.on(window, 'touchmove', ({touches}) => {
-                if (swipeX !== null && touches && touches.length && touches[0].clientX) {
+                if (swipeX !== -1 && touches && touches.length && touches[0].clientX) {
                     const diff = swipeX - touches[0].clientX;
 
-                    if (diff < -100) {
+                    if (diff < -50) {
                         this.open = false;
-                        swipeX = null;
-                    } else if (diff > 100) {
+                        swipeX = -1;
+                    } else if (diff > 50) {
                         this.open = true;
-                        swipeX = null;
+                        swipeX = -1;
                     }
                 }
             });
