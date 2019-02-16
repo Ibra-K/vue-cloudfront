@@ -298,7 +298,7 @@
         .views {
             .list-view,
             .grid-view {
-                margin: 0 0.75em;
+                margin: 0 0.5em;
             }
         }
     }
