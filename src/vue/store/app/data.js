@@ -30,7 +30,7 @@ export const data = {
          * @param parent Target directory
          * @param dataTransfer drop dataTrasnsfer object
          */
-        async upload({state}, {parent, dataTransfer: {files, items}}) {
+        async upload({state}, {parent, dataTransfer: {files = [], items = []}}) {
 
             // Create new upload object
             const stats = {
@@ -149,7 +149,7 @@ export const data = {
                     fileMap[id] = files;
                 }
             } else {
-                fileMap[parent] = files;
+                fileMap[parent.id] = files;
             }
 
             // Upload files

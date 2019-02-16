@@ -45,6 +45,13 @@
             <span class="name">New Folder</span>
         </div>
 
+        <div v-if="!search.active && activeTab === 'home'"
+             class="option"
+             @click="upload">
+            <i class="fas fa-fw fa-plus"></i>
+            <span class="name">Upload</span>
+        </div>
+
         <div v-if="nodes.length === 1"
              class="option"
              @click="edit">
@@ -283,6 +290,23 @@
                 this.$emit('hide');
             },
 
+            upload() {
+                const fileInput = document.createElement('input');
+                fileInput.setAttribute('type', 'file');
+                fileInput.setAttribute('multiple', 'true');
+
+                fileInput.addEventListener('change', () => {
+                    this.$store.dispatch('data/upload', {
+                        parent: this.$store.state.location.node,
+                        dataTransfer: {
+                            files: fileInput.files
+                        }
+                    });
+                });
+
+                fileInput.click();
+            },
+
             moveToClipboard(type) {
                 if (this.nodes.length) {
 
@@ -344,6 +368,7 @@
         padding: 0.4em 0;
         box-shadow: 0 3px 15px 0 rgba(0, 0, 0, 0.2);
         border-radius: 0.35em;
+        z-index: 10;
 
         &:empty {
             display: none;
