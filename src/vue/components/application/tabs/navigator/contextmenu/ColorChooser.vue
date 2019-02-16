@@ -40,7 +40,6 @@
             customColor(color) {
                 this.$emit('change', color);
             }
-
         }
     };
 

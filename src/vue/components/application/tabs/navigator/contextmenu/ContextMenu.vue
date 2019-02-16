@@ -174,7 +174,12 @@
         mounted() {
 
             // Close on resize and keypress
-            this.utils.on(window, ['resize', 'keydown', 'wheel', 'blur'], () => this.$emit('hide'));
+            this.utils.on(window, ['resize', 'keydown', 'wheel', 'blur'], e => {
+                if (e instanceof KeyboardEvent && e.code !== 'Escape') {
+                    return;
+                }
+                this.$emit('hide');
+            });
 
             // Function to check, if menu is open, if the user has clicked
             // outside of the menu. Only active is menu is visible.
@@ -435,7 +440,7 @@
             bottom: 0 !important;
             border-radius: 0;
             width: 100%;
-            font-size: 1.2em;
+            font-size: 1.05em;
 
             &.top {
                 transform: none;
